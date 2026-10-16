@@ -13,7 +13,7 @@
 -r server.txt
 
 # --- MCP client (deferred tools for chat + partners) ---
-mcp>=1.30.0,<2.0.0
+mcp>=1.30.0,<3.0.0
 
 # --- Channel SDKs ---
 python-telegram-bot[socks]>=22.6,<23.0
