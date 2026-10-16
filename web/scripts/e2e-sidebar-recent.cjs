@@ -321,7 +321,15 @@ async function fullListScroll(page) {
         await expect.poll(() => page.getByTestId("sidebar").evaluate((element) => element.getBoundingClientRect().right)).toBeLessThanOrEqual(1);
       }
       assert(active.apiRequests.some((request) => request.includes("/sessions?limit=8")), "Sidebar did not request its eight recent sessions");
-      assert(active.apiRequests.some((request) => request.includes("/sessions?limit=200")), "History navigation did not request full history");
+      // The heading renders before the history page's effect issues its request.
+      // Wait for that observable boundary, then verify the returned rows render.
+      await expect.poll(
+        () => active.apiRequests.some((request) => request.includes("/sessions?limit=200")),
+        { message: "History navigation did not request full history" },
+      ).toBe(true);
+      for (const session of sessions) {
+        await expect(page.getByRole("main").locator(`a[href="/home/${session.session_id}"]`)).toBeVisible();
+      }
       active.assertIsolation();
       results.push({ scenario: name, initial, expertOpen, scrolling, recentNavigation: true, fullHistoryNavigation: true, mobileDrawerClose: viewport.width < 768, touchOptionsVisibleWithoutHover: viewport.width < 768, ...active.evidence() });
       await active.close(); active = null;
