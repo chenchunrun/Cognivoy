@@ -761,10 +761,7 @@ def _relocate_legacy_store(user_root: Path, secrets_root: Path) -> bool:
         # secrets dir, where the server would then use it as their login.
         legacy.assert_safe_location()
     except CodexAuthError:
-        logger.warning(
-            "Refusing to relocate Codex credentials: %s is not a plain directory",
-            legacy.root,
-        )
+        logger.warning("Refusing to relocate Codex credentials: source is not a plain directory")
         return True  # nothing we will ever move; do not retry
     if not legacy.root.is_dir():
         return True
@@ -785,9 +782,9 @@ def _relocate_legacy_store(user_root: Path, secrets_root: Path) -> bool:
         # discard, and the credential file is what tells the two apart.
         if legacy.credentials_path.exists():
             shutil.rmtree(target, ignore_errors=True)
-        logger.warning("Could not relocate Codex credentials %s -> %s", legacy.root, target)
+        logger.warning("Could not relocate Codex credentials")
         return False
-    logger.info("Relocated Codex credentials out of the sandbox-visible tree: %s", target)
+    logger.info("Relocated Codex credentials out of the sandbox-visible tree")
     return True
 
 

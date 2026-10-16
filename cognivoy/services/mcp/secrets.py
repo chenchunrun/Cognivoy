@@ -126,12 +126,7 @@ def resolve_references(owner_id: str, payload: Any) -> Any:
         stored = _read_all(_secrets_file(owner_id, server), purpose=_purpose(owner_id, server))
         value = stored.get(match.group("field"))
         if value is None:
-            logger.warning(
-                "MCP secret %s/%s is referenced but not stored for owner %s",
-                match.group("server"),
-                match.group("field"),
-                owner_id,
-            )
+            logger.warning("An MCP secret reference has no stored value for the current owner")
             return ""
         return value
     if isinstance(payload, dict):

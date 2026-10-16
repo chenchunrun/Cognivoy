@@ -13,6 +13,7 @@ import secrets
 import string
 import time
 from typing import TYPE_CHECKING, Any
+from urllib.parse import urlsplit
 import uuid
 
 import json_repair
@@ -83,14 +84,21 @@ def _coerce_dict(value: Any) -> dict[str, Any] | None:
 def _uses_openrouter(spec: "ProviderSpec | None", api_base: str | None) -> bool:
     if spec and spec.name == "openrouter":
         return True
-    return bool(api_base and "openrouter" in api_base.lower())
+    return _provider_hostname(api_base) == "openrouter.ai"
+
+
+def _provider_hostname(api_base: str | None) -> str:
+    try:
+        parsed = urlsplit(api_base or "")
+        if parsed.scheme not in {"http", "https"} or parsed.username or parsed.password:
+            return ""
+        return (parsed.hostname or "").lower().rstrip(".")
+    except ValueError:
+        return ""
 
 
 def _is_direct_openai_base(api_base: str | None) -> bool:
-    if not api_base:
-        return False
-    base = api_base.lower()
-    return "api.openai.com" in base
+    return _provider_hostname(api_base) == "api.openai.com"
 
 
 def _responses_circuit_key(

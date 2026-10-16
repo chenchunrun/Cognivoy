@@ -52,7 +52,7 @@ jobs:
           python-version: "3.12"
       - run: python -m pip install pip-audit==2.10.1 uv==0.9.26
       - name: Export default locked dependency set
-        run: uv export --locked --no-dev --no-emit-project --format requirements-txt --output /tmp/cognivoy-default-requirements.txt
+        run: uv export --locked --no-dev --no-emit-project --format requirements-txt --output-file /tmp/cognivoy-default-requirements.txt
       - name: Audit default locked dependency set
         run: pip-audit -r /tmp/cognivoy-default-requirements.txt --no-deps --disable-pip --progress-spinner off
       - name: Audit supported server dependency set
