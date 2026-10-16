@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import asyncio
 import json
-import logging
 from pathlib import Path
 import traceback
 from typing import Any, Awaitable, Callable, Dict, List, Optional
 
+from cognivoy.logging.safe_logger import get_logger
 from cognivoy.runtime.home import get_runtime_data_root
 from cognivoy.services.embedding import get_embedding_config
 from cognivoy.services.rag.embedding_signature import signature_from_embedding_config
@@ -27,17 +27,12 @@ from .errors import search_error_result
 
 
 def _vector_adapter():
-    try:
-        from . import embedding_adapter
-    except ModuleNotFoundError as exc:
-        if exc.name and exc.name.split(".")[0] in {"llama_index", "nltk", "faiss"}:
-            raise RuntimeError(
-                "Vector/hybrid retrieval requires the optional vector dependencies. "
-                "Install cognivoy[rag-llamaindex] (or cognivoy-cli[rag-llamaindex]), "
-                "or select keyword retrieval. See SECURITY.md for optional dependency risks."
-            ) from exc
-        raise
-    return embedding_adapter
+    raise RuntimeError(
+        "Local vector/hybrid retrieval is temporarily unavailable. "
+        "Select keyword retrieval or an external retrieval provider. "
+        "Existing knowledge-base data is preserved; the rag-llamaindex extra "
+        "does not enable local vector retrieval."
+    )
 
 
 def configure_llamaindex_settings(*args):
@@ -80,7 +75,7 @@ class LlamaIndexPipeline:
         document_loader: LlamaIndexDocumentLoader | None = None,
         isolated_runner: IsolatedRunner | None = None,
     ):
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_logger(__name__)
         self.kb_base_dir = kb_base_dir or DEFAULT_KB_BASE_DIR
         self._signature_provider = signature_provider or signature_from_embedding_config
         self.document_loader = document_loader or LlamaIndexDocumentLoader(self.logger)

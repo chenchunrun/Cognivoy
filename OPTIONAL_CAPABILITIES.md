@@ -4,6 +4,25 @@ Core learning and chat do not require a local model server, Manim, or media-gene
 
 For knowledge bases without an embedding service, see [model-free keyword/BM25 retrieval](MODEL_FREE_RETRIEVAL.md). This avoids an Ollama dependency for text retrieval, but does not remove language-model, OCR, or media-provider requirements from features that use them.
 
+## Local engine availability
+
+Local LlamaIndex vector/hybrid retrieval and Docling parsing are temporarily
+unavailable. Their compatibility extras install no packages and do not enable
+these engines, even if dependencies from an older installation remain installed.
+
+Keyword retrieval remains available without embedding models or NLTK. Select
+keyword retrieval explicitly when an existing configuration uses vector or hybrid
+retrieval. Saved settings, documents, provider identities, and vector indexes are
+preserved; this change does not rebuild or delete them. Existing text document
+stores can be searched through keyword retrieval.
+
+Text-only, MarkItDown, PyMuPDF4LLM, and external MinerU parsing remain available.
+Select another parser explicitly for configurations previously using Docling.
+Docling's installation and model-download actions are unavailable.
+
+External retrieval providers, including LightRAG Server, remain available. Local
+GraphRAG and RAG-Anything retain their existing unavailable status.
+
 ## GraphRAG
 
 **Temporarily disabled pending dependency security compatibility.** GraphRAG is

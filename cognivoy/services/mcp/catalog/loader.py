@@ -19,10 +19,10 @@ from __future__ import annotations
 
 from functools import lru_cache
 import json
-import logging
 from pathlib import Path
 from typing import Any, NamedTuple
 
+from cognivoy.logging.safe_logger import get_logger
 from cognivoy.services.mcp.catalog.models import (
     CATALOG_CATEGORIES,
     CATALOG_TIERS,
@@ -32,7 +32,7 @@ from cognivoy.services.mcp.catalog.models import (
 )
 from cognivoy.services.mcp.config import MCPServerConfig
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 CATALOG_FILENAME = "curated.json"
 CATALOG_PATH = Path(__file__).parent / "vendor" / CATALOG_FILENAME

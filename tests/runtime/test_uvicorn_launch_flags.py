@@ -16,9 +16,12 @@ backend that way, which no per-module test would catch.
 
 from __future__ import annotations
 
+import importlib
 from pathlib import Path
+import shlex
 
 import pytest
+import yaml
 
 _REPO = Path(__file__).resolve().parents[2]
 
@@ -64,3 +67,30 @@ def test_keep_alive_outlasts_the_proxy_socket_reaper() -> None:
     from cognivoy.services.config import HTTP_KEEP_ALIVE_TIMEOUT
 
     assert HTTP_KEEP_ALIVE_TIMEOUT >= 60, "too close to the proxy's 5s socket reaper"
+
+
+def test_browser_ci_backend_outlasts_proxy_idle_connections(monkeypatch) -> None:
+    """Parse CI's actual command through uvicorn, retaining its real defaults."""
+    from click.testing import CliRunner
+
+    workflow = yaml.safe_load((_REPO / ".github/workflows/tests.yml").read_text())
+    command = next(
+        line.strip()
+        for job in workflow["jobs"].values()
+        for step in job.get("steps", [])
+        for line in step.get("run", "").splitlines()
+        if line.strip().startswith("python -m uvicorn ")
+    )
+    argv = shlex.split(command.split(" > ", 1)[0])[3:]
+    uvicorn_cli = importlib.import_module("uvicorn.main")
+    configs = []
+
+    def capture_server(app, **kwargs):
+        import uvicorn
+
+        configs.append(uvicorn.Config(app, timeout_keep_alive=kwargs["timeout_keep_alive"]))
+
+    monkeypatch.setattr(uvicorn_cli, "run", capture_server)
+    result = CliRunner().invoke(uvicorn_cli.main, argv)
+    assert result.exit_code == 0, result.output
+    assert configs[0].timeout_keep_alive >= 60

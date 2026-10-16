@@ -141,7 +141,9 @@ jobs:
           COGNIVOY_HOME: ${{ runner.temp }}/cognivoy-ci
         run: |
           mkdir -p "$COGNIVOY_HOME"
-          python -m uvicorn cognivoy.api.main:app --host 127.0.0.1 --port 8001 > "$RUNNER_TEMP/cognivoy-api.log" 2>&1 &
+          # Match the production launcher's idle timeout so Node's proxy pool
+          # retires sockets before uvicorn (the shared 5s default races reuse).
+          python -m uvicorn cognivoy.api.main:app --host 127.0.0.1 --port 8001 --timeout-keep-alive 300 > "$RUNNER_TEMP/cognivoy-api.log" 2>&1 &
           api_pid=$!
           cp -R web/.next/static web/.next/standalone/.next/static
           cp -R web/public web/.next/standalone/public

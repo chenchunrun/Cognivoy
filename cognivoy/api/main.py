@@ -11,6 +11,7 @@ from cognivoy.api.csrf import CsrfProtectionMiddleware
 from cognivoy.api.errors import install_error_handlers
 from cognivoy.api.security_middleware import RequestSecurityMiddleware
 from cognivoy.logging import configure_logging
+from cognivoy.logging.formatters import ConsoleFormatter
 from cognivoy.services.config import (
     ensure_runtime_settings_files,
     export_runtime_settings_to_env,
@@ -266,7 +267,7 @@ _access_logger = logging.getLogger("cognivoy.access")
 if not any(getattr(h, "_cognivoy_access_handler", False) for h in _access_logger.handlers):
     _access_handler = logging.StreamHandler(sys.stdout)
     _access_handler.setLevel(logging.INFO)
-    _access_handler.setFormatter(logging.Formatter("%(message)s"))
+    _access_handler.setFormatter(ConsoleFormatter())
     _access_handler._cognivoy_access_handler = True  # type: ignore[attr-defined]
     _access_logger.addHandler(_access_handler)
     _access_logger.setLevel(logging.INFO)

@@ -24,7 +24,6 @@ import asyncio
 import base64
 import hashlib
 import json
-import logging
 import mimetypes
 from pathlib import Path
 from typing import Any, Awaitable, Callable
@@ -32,6 +31,7 @@ import uuid
 
 from cognivoy.core.context import Attachment, UnifiedContext
 from cognivoy.core.stream import StreamEvent, StreamEventType
+from cognivoy.logging.safe_logger import get_logger
 from cognivoy.multi_user.paths import user_context
 from cognivoy.partners.bus.events import InboundMessage, OutboundMessage
 from cognivoy.partners.bus.queue import MessageBus
@@ -41,7 +41,7 @@ from cognivoy.services.partners.scope import partner_user
 from cognivoy.services.partners.sessions import PartnerSessionStore
 from cognivoy.services.partners.workspace import ensure_partner_workspace, read_soul
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 EventCallback = Callable[[StreamEvent], Awaitable[None]]
 

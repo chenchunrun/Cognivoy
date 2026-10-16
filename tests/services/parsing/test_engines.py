@@ -205,7 +205,7 @@ def test_install_manager_spec_allowlist() -> None:
     )
 
     # Only optional pip-backed engines are installable; built-in / external are not.
-    assert installable_engines() == {"pymupdf4llm", "markitdown", "docling"}
+    assert installable_engines() == {"pymupdf4llm", "markitdown"}
     assert ENGINE_PIP_SPECS["pymupdf4llm"] == ["pymupdf4llm>=0.0.17,<1.0"]
     assert "text_only" not in ENGINE_PIP_SPECS
     assert "mineru" not in ENGINE_PIP_SPECS
@@ -217,9 +217,9 @@ def test_model_download_allowlist() -> None:
         model_downloadable_engines,
     )
 
-    # Only Docling fetches model weights; the others need no models.
-    assert model_downloadable_engines() == {"docling"}
-    assert ENGINE_MODEL_DOWNLOADERS["docling"][0] == "docling-tools"
+    # Docling is temporarily unavailable; no active engine uses this downloader.
+    assert model_downloadable_engines() == set()
+    assert "docling" not in ENGINE_MODEL_DOWNLOADERS
     assert "pymupdf4llm" not in ENGINE_MODEL_DOWNLOADERS
 
 

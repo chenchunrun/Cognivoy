@@ -3,7 +3,6 @@
 from contextvars import Token as _CtxToken
 from datetime import datetime, timezone
 import ipaddress
-import logging
 from pathlib import Path
 import re
 import shutil
@@ -25,6 +24,7 @@ from fastapi import (
 from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel, field_validator, model_validator
 
+from cognivoy.logging.safe_logger import get_logger
 from cognivoy.services.config import load_auth_settings
 from cognivoy.services.config.origins import (
     browser_allowed_origins,
@@ -67,7 +67,7 @@ from cognivoy.services.codex_auth.contracts import CodexAuthError
 from cognivoy.services.codex_auth.service import deliver_codex_oauth_callback
 from cognivoy.services.login_rate_limit import SharedLoginRateLimiter
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 router = APIRouter()
 

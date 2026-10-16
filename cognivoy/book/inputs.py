@@ -15,8 +15,9 @@ Reuses:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-import logging
 from typing import Any
+
+from cognivoy.logging.safe_logger import get_logger
 
 from .models import (
     BookInputs,
@@ -25,7 +26,7 @@ from .models import (
     NotebookRef,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

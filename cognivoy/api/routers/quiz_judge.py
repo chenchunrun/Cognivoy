@@ -10,18 +10,18 @@ from __future__ import annotations
 
 import base64 as _b64
 import json
-import logging
 import re
 from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from cognivoy.logging.safe_logger import get_logger
 from cognivoy.services.config import PROJECT_ROOT, load_config_with_main
 from cognivoy.services.llm import stream as llm_stream
 from cognivoy.services.settings.interface_settings import get_response_language
 from cognivoy.utils.error_utils import format_exception_message
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 _config = load_config_with_main("main.yaml", PROJECT_ROOT)
 
 router = APIRouter()

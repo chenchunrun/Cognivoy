@@ -8,7 +8,6 @@ the Docling document API, which is best pinned when we wire LightRAG.
 
 from __future__ import annotations
 
-import importlib.util
 import os
 from pathlib import Path
 from typing import Callable, Optional
@@ -79,7 +78,7 @@ class DoclingParser:
 
     @classmethod
     def is_available(cls) -> bool:
-        return importlib.util.find_spec("docling") is not None
+        return False
 
     def resolve_config(self) -> DoclingConfig:
         return resolve_docling_config()
@@ -99,7 +98,7 @@ class DoclingParser:
             return ReadinessReport(
                 ready=False,
                 reason="not_configured",
-                message="Docling isn't installed (pip install cognivoy[parse-docling]).",
+                message="Docling is temporarily unavailable. Select another document parser.",
             )
         if config.allow_local_model_download or _docling_models_ready():
             return ReadinessReport(ready=True)
@@ -121,40 +120,7 @@ class DoclingParser:
         config: DoclingConfig,
         on_output: Optional[Callable[[str], None]] = None,
     ) -> None:
-        if on_output:
-            on_output(f"Converting {Path(source_path).name} via Docling…")
-        try:
-            converter = self._build_converter(config)
-            result = converter.convert(str(source_path))
-            markdown = result.document.export_to_markdown()
-        except Exception as exc:  # noqa: BLE001 - surface as a parser error
-            raise ParserError(f"Docling failed to convert {Path(source_path).name}: {exc}")
-
-        stem = Path(source_path).stem
-        (workdir / f"{stem}.md").write_text(str(markdown), encoding="utf-8")
-
-    @staticmethod
-    def _build_converter(config: DoclingConfig):
-        """Build a converter, applying OCR/table options best-effort.
-
-        Docling's options API varies across versions; if option wiring fails we
-        fall back to the default converter rather than break the parse.
-        """
-        from docling.document_converter import DocumentConverter
-
-        try:
-            from docling.datamodel.base_models import InputFormat
-            from docling.datamodel.pipeline_options import PdfPipelineOptions
-            from docling.document_converter import PdfFormatOption
-
-            pipeline_options = PdfPipelineOptions()
-            pipeline_options.do_ocr = config.do_ocr
-            pipeline_options.do_table_structure = config.do_table_structure
-            return DocumentConverter(
-                format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)}
-            )
-        except Exception:
-            return DocumentConverter()
+        raise ParserError("Docling is temporarily unavailable. Select another document parser.")
 
 
 __all__ = ["DoclingParser"]

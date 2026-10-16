@@ -40,7 +40,7 @@ packaging>=24.0
 aiosqlite>=0.19.0
 
 # --- Document retrieval (model-free by default) ---
-# Vector/hybrid retrieval is optional: requirements/rag-llamaindex.txt.
+# Local vector/hybrid retrieval is temporarily unavailable; keyword is built in.
 PyMuPDF>=1.26.0
 numpy>=1.24.0,<3.0.0
 arxiv>=2.0.0

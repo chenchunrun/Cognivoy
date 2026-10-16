@@ -4,8 +4,11 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
+
 
 def test_custom_embedding_passes_query_and_document_roles(monkeypatch) -> None:
+    pytest.importorskip("llama_index.core", reason="Legacy vector adapter coverage")
     from cognivoy.services.rag.pipelines.llamaindex import (
         embedding_adapter as embedding_module,
     )

@@ -19,7 +19,6 @@ import caches so the engine reports available in the same process (no restart).
 from __future__ import annotations
 
 import importlib
-import logging
 import os
 from pathlib import Path
 import shutil
@@ -29,9 +28,11 @@ import threading
 import time
 from typing import Any, Callable, Optional
 
+from cognivoy.logging.safe_logger import get_logger
+
 from ._versions import package_version
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Engine id -> pip requirement specifiers. Mirrors the optional extras in
 # pyproject.toml. Engines absent here (text_only built-in, mineru external
@@ -41,14 +42,11 @@ ENGINE_PIP_SPECS: dict[str, list[str]] = {
     # drops image extraction — keep the lightweight, image-capable pre-1.0 line.
     "pymupdf4llm": ["pymupdf4llm>=0.0.17,<1.0"],
     "markitdown": ["markitdown[pdf,docx,pptx,xlsx]>=0.0.1a2"],
-    "docling": ["docling>=2.0.0"],
 }
 
 # Engine id -> console-script argv that downloads its model weights. The script
 # is resolved next to the server's python first (same env), then on PATH.
-ENGINE_MODEL_DOWNLOADERS: dict[str, list[str]] = {
-    "docling": ["docling-tools", "models", "download"],
-}
+ENGINE_MODEL_DOWNLOADERS: dict[str, list[str]] = {}
 
 # Buffered log lines kept in memory; older lines are dropped (the cursor
 # protocol keeps clients consistent across trims).

@@ -25,12 +25,12 @@ Multi-user setup (recommended):
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-import logging
 from typing import Any
 
+from cognivoy.logging.safe_logger import get_logger
 from cognivoy.services.config import load_auth_settings, load_integrations_settings
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ---------------------------------------------------------------------------
 # Configuration — read once at import time from runtime JSON settings

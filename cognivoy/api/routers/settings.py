@@ -10,7 +10,6 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime, timezone
 import json
-import logging
 import os
 from pathlib import Path
 import re
@@ -23,7 +22,9 @@ from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-logger = logging.getLogger(__name__)
+from cognivoy.logging.safe_logger import get_logger
+
+logger = get_logger(__name__)
 
 from cognivoy.multi_user.context import get_current_user
 from cognivoy.multi_user.model_access import allowed_llm_options

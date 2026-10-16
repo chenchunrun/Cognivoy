@@ -15,16 +15,18 @@ engines and optional document parsers have their own requirements.
 
 The default full-app and CLI installations do not install LlamaIndex, FAISS, or
 NLTK. Keyword loading and retrieval use plain text records, including read-only
-access to historical LlamaIndex JSON text stores. Vector/hybrid retrieval needs
-`pip install 'cognivoy[rag-llamaindex]'` (CLI-only:
-`pip install 'cognivoy-cli[rag-llamaindex]'`) plus an embedding service.
-Review [optional dependency risks](SECURITY.md) before enabling this extra.
+access to historical LlamaIndex JSON text stores. Local vector/hybrid retrieval
+and Docling parsing are temporarily unavailable; their compatibility extras
+install no packages and cannot enable these engines. See
+[local engine availability](OPTIONAL_CAPABILITIES.md#local-engine-availability).
 An upgrade in an existing environment does not uninstall old dependencies;
 use a fresh virtual environment for a default-only deployment.
 
 New installations, missing profiles, and invalid profile values default to
 `keyword`. Existing valid, explicitly saved `hybrid` or `vector` settings are
-preserved; an upgrade does not silently replace that choice.
+preserved; an upgrade does not silently replace that choice. Such profiles now
+return an explicit unavailable error. Select and save `keyword` to resume local
+retrieval. Existing documents and vector indexes are preserved without rebuilding.
 
 | LlamaIndex profile | Retrieval | Embedding service required |
 | --- | --- | --- |

@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import difflib
 import json
-import logging
 from pathlib import Path
 import shutil
 import threading
@@ -27,10 +26,11 @@ import uuid
 
 from pydantic import BaseModel, Field
 
+from cognivoy.logging.safe_logger import get_logger
 from cognivoy.services.file_io import atomic_write_text as _atomic_write_text
 from cognivoy.services.path_service import get_path_service
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 _storage_lock = threading.RLock()
 _REVISION_HISTORY_LIMIT = 100
 

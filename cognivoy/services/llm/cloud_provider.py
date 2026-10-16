@@ -7,12 +7,12 @@ Provides both complete() and stream() methods.
 """
 
 from collections.abc import AsyncGenerator, Mapping
-import logging
 import threading
 from typing import cast
 
 import aiohttp
 
+from cognivoy.logging.safe_logger import get_logger
 from cognivoy.services.config import load_system_settings
 
 from .capabilities import (
@@ -32,7 +32,7 @@ from .utils import (
     sanitize_url,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Thread-safe lock for SSL-warning state
 _ssl_warning_lock = threading.Lock()

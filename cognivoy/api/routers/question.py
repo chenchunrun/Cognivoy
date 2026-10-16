@@ -1,7 +1,6 @@
 import asyncio
 import base64
 from datetime import datetime
-import logging
 from pathlib import Path
 import re
 import sys
@@ -17,6 +16,7 @@ from cognivoy.logging import (
     capture_process_logs,
     current_log_context,
 )
+from cognivoy.logging.safe_logger import get_logger
 from cognivoy.services.config import PROJECT_ROOT, load_config_with_main
 from cognivoy.services.llm.config import get_llm_config
 from cognivoy.services.path_service import get_path_service
@@ -28,7 +28,7 @@ from cognivoy.utils.error_utils import format_exception_message
 # Setup module logger with unified logging system (from config)
 config = load_config_with_main("main.yaml", PROJECT_ROOT)
 log_dir = config.get("paths", {}).get("user_log_dir") or config.get("logging", {}).get("log_dir")
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 router = APIRouter()
 

@@ -7,12 +7,12 @@ import importlib
 from types import SimpleNamespace
 
 from fastapi import BackgroundTasks, HTTPException
-from llama_index.core import Document
 import pytest
 
 from cognivoy.knowledge.manager import KnowledgeBaseManager
 from cognivoy.services.rag import embedding_signature
 from cognivoy.services.rag.pipelines.llamaindex import keyword
+from cognivoy.services.rag.pipelines.llamaindex.document_loader import TextDocument as Document
 
 router = importlib.import_module("cognivoy.api.routers.knowledge")
 

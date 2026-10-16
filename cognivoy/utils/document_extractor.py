@@ -20,7 +20,6 @@ from __future__ import annotations
 import base64
 from collections.abc import Iterable
 import io
-import logging
 from pathlib import Path, PurePosixPath
 import re
 from typing import Any
@@ -29,9 +28,10 @@ import zipfile
 from defusedxml import ElementTree as DefusedElementTree
 from defusedxml.common import DefusedXmlException
 
+from cognivoy.logging.safe_logger import get_logger
 from cognivoy.services.rag.file_routing import FileTypeRouter
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Optional parser libraries are resolved on first use.  The public-ish module
 # names remain overrideable because downstream deployments and tests use

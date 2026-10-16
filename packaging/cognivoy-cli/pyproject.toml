@@ -79,12 +79,8 @@ Changelog = "https://github.com/chenchunrun/Cognivoy/blob/main/CHANGELOG.md"
 Security = "https://github.com/chenchunrun/Cognivoy/security/policy"
 
 [project.optional-dependencies]
-rag-llamaindex = [
-    "llama-index-core>=0.14.12",
-    "llama-index-retrievers-bm25>=0.7.1,<0.8.0",
-    "llama-index-vector-stores-faiss>=0.4.0,<1.0.0",
-    "faiss-cpu>=1.8.0,<2.0.0",
-]
+# Compatibility alias; local vector/hybrid retrieval is temporarily unavailable.
+rag-llamaindex = []
 
 [tool.setuptools]
 package-dir = {"" = "../.."}

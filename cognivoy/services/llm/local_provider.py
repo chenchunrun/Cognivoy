@@ -13,9 +13,10 @@ Key features:
 
 from collections.abc import AsyncGenerator
 import json
-import logging
 
 import aiohttp
+
+from cognivoy.logging.safe_logger import get_logger
 
 from .exceptions import LLMAPIError, LLMConfigError
 from .utils import (
@@ -27,7 +28,7 @@ from .utils import (
     sanitize_url,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def _extract_message_from_payload(payload: dict[str, object]) -> str:

@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import pytest
+
+# Legacy vector implementation coverage, outside the enabled keyword runtime.
+pytest.importorskip("llama_index.core", reason="Local vector integration is disabled")
+
 from llama_index.core import Document
 from llama_index.core.schema import TextNode
 

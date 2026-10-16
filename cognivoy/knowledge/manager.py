@@ -9,7 +9,6 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 import hashlib
 import json
-import logging
 import os
 from pathlib import Path
 import shutil
@@ -28,6 +27,7 @@ from cognivoy.knowledge.kb_types import (
 )
 from cognivoy.knowledge.manifest import iter_kb_documents
 from cognivoy.knowledge.naming import validate_knowledge_base_name
+from cognivoy.logging.safe_logger import get_logger
 from cognivoy.services.file_io import atomic_write_json
 from cognivoy.services.rag.factory import (
     DEFAULT_PROVIDER,
@@ -45,7 +45,7 @@ from cognivoy.services.rag.index_probe import (
     provider_failure_summary,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 # How long an entry can be missing its KB directory before ``list_knowledge_bases``

@@ -10,7 +10,6 @@ from datetime import datetime, timedelta, timezone
 import hashlib
 import hmac
 import json
-import logging
 import mimetypes
 import os
 from pathlib import Path
@@ -46,6 +45,7 @@ from cognivoy.knowledge.naming import validate_knowledge_base_name
 from cognivoy.knowledge.progress_tracker import ProgressStage, ProgressTracker
 from cognivoy.knowledge.references import get_knowledge_reference_service
 from cognivoy.logging import bind_log_context
+from cognivoy.logging.safe_logger import get_logger
 from cognivoy.multi_user.context import get_current_user
 from cognivoy.multi_user.knowledge_access import (
     assert_writable,
@@ -84,7 +84,7 @@ from cognivoy.utils.error_utils import format_exception_message
 # Initialize logger with config
 config = load_config_with_main("main.yaml", PROJECT_ROOT)
 log_dir = config.get("paths", {}).get("user_log_dir") or config.get("logging", {}).get("log_dir")
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 router = APIRouter()
 
