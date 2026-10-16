@@ -43,6 +43,11 @@ class ProgressTracker:
         self._callbacks: list = []  # Support multiple callbacks
         self.task_id: str | None = None  # Task ID (for log identification)
 
+    @property
+    def stream_key(self) -> str:
+        """Scope subscriptions to the physical KB, not a cross-user name."""
+        return str(self.kb_dir.resolve())
+
     def set_callback(self, callback: Callable[[dict], None]):
         """Set progress callback function (can be called multiple times to add multiple callbacks)"""
         if callback not in self._callbacks:
@@ -65,7 +70,7 @@ class ProgressTracker:
 
                 try:
                     loop = asyncio.get_running_loop()
-                    loop.create_task(broadcaster.broadcast(self.kb_name, progress))
+                    loop.create_task(broadcaster.broadcast(self.stream_key, progress))
                 except RuntimeError:
                     pass
             except (ImportError, Exception):

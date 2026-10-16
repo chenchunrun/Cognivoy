@@ -3975,12 +3975,15 @@ async def websocket_progress(websocket: WebSocket, kb_name: str):
     await websocket.accept()
 
     broadcaster = ProgressBroadcaster.get_instance()
+    stream_key = None
 
     try:
-        await broadcaster.connect(kb_name, websocket)
-
-        base_dir = _current_kb_base_dir()
+        resource = resolve_kb(kb_name)
+        kb_name = resource.name
+        base_dir = resource.base_dir
         progress_tracker = ProgressTracker(kb_name, base_dir)
+        stream_key = progress_tracker.stream_key
+        await broadcaster.connect(stream_key, websocket)
         initial_progress = progress_tracker.get_progress()
         expected_task_id = websocket.query_params.get("task_id")
 
@@ -4089,6 +4092,8 @@ async def websocket_progress(websocket: WebSocket, kb_name: str):
             except Exception:
                 break
 
+    except HTTPException:
+        await websocket.close(code=1008)
     except Exception as e:
         trace_id = uuid4().hex
         logger.error(
@@ -4110,7 +4115,8 @@ async def websocket_progress(websocket: WebSocket, kb_name: str):
         except Exception:
             pass
     finally:
-        await broadcaster.disconnect(kb_name, websocket)
+        if stream_key is not None:
+            await broadcaster.disconnect(stream_key, websocket)
         try:
             await websocket.close()
         except Exception:
