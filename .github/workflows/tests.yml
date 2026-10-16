@@ -7,6 +7,9 @@ on:
       - main
       - dev
     paths:
+      - ".dockerignore"
+      - "Dockerfile"
+      - "Dockerfile.*"
       - "cognivoy/**"
       - "cognivoy_cli/**"
       - "tests/**"
@@ -36,6 +39,9 @@ on:
       - main
       - dev
     paths:
+      - ".dockerignore"
+      - "Dockerfile"
+      - "Dockerfile.*"
       - "cognivoy/**"
       - "cognivoy_cli/**"
       - "tests/**"
