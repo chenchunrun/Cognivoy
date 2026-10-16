@@ -3,6 +3,6 @@ title = "Cognivoy Gitleaks configuration"
 [extend]
 useDefault = true
 
-[[allowlists]]
+[allowlist]
 description = "detect-secrets stores one-way hashes, not credential values"
 paths = ['''(^|/)\.secrets\.baseline$''']

@@ -36,7 +36,7 @@ function publicRoute(appPath) {
 }
 
 function chunkStem(appPath) {
-  return appPath.replace(/^\//, "").replace(/\/page$/, "/page");
+  return appPath.replace(/^\//, "");
 }
 
 function matchingInitialChunks(appPath, allChunks) {

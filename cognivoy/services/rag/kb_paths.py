@@ -30,7 +30,11 @@ def resolve_kb_dir(kb_base_dir: str | Path, kb_name: str) -> Path:
     base = Path(kb_base_dir)
     external = _external_path(base, kb_name)
     if external:
-        return Path(external).expanduser()
+        from cognivoy.services.rag.linked_kb import assert_safe_folder_contents
+
+        folder = Path(external).expanduser()
+        assert_safe_folder_contents(folder)
+        return folder
     return base / kb_name
 
 

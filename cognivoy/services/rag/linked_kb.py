@@ -26,9 +26,8 @@ from typing import Any, Optional
 
 # Optional ops-set allowlist of filesystem roots a linked folder must live
 # under, as an ``os.pathsep``-separated list. Unset (the default) means no
-# restriction, which is correct for the local/self-hosted single-trust-domain
-# deployments this feature targets. Shared multi-user servers should set it so a
-# non-admin cannot point a KB at another user's data or system paths.
+# restriction for administrators and local CLI callers. Ordinary users remain
+# confined to their own workspace even when this optional allowlist is unset.
 LINK_ROOTS_ENV = "COGNIVOY_LINKED_FOLDER_ROOTS"
 
 from cognivoy.services.rag.factory import (
@@ -93,9 +92,9 @@ def assert_path_allowed(folder_path: str) -> Path:
     """Resolve ``folder_path`` and enforce the optional root allowlist.
 
     Returns the resolved absolute path. Raises ``ValueError`` if the folder is
-    missing/not a directory, or escapes the configured allowlist (symlinks are
-    resolved first so they can't tunnel out). With no allowlist set, any
-    existing directory is permitted — the self-hosted default.
+    missing/not a directory, or escapes the configured allowlist or current
+    user's workspace. Symlinks are resolved before authorization. Local CLI
+    callers and administrators retain access to external folders.
     """
     folder = Path(folder_path).expanduser()
     if not folder.exists():
@@ -104,10 +103,43 @@ def assert_path_allowed(folder_path: str) -> Path:
         raise ValueError(f"Not a directory: {folder}")
     resolved = folder.resolve()
 
+    from cognivoy.multi_user.context import get_current_user_or_none
+
+    user = get_current_user_or_none()
+    if (
+        user is not None
+        and not user.is_admin
+        and not _is_within(resolved, user.scope.root.resolve())
+    ):
+        raise ValueError("This folder is outside your workspace.")
+
     roots = allowed_link_roots()
     if roots and not any(_is_within(resolved, root) for root in roots):
         raise ValueError("This folder is outside the locations allowed for linking.")
+    assert_safe_folder_contents(resolved)
     return resolved
+
+
+def assert_safe_folder_contents(folder: Path) -> None:
+    """Reject untrusted folder trees that redirect reads through symlinks.
+
+    Re-run this at use time as well as registration: a user can change a linked
+    directory after connecting it. Directory symlinks are rejected outright
+    because a non-following walk cannot validate their descendants.
+    """
+    from cognivoy.multi_user.context import get_current_user_or_none
+
+    user = get_current_user_or_none()
+    if user is None or user.is_admin:
+        return
+    root = folder.resolve()
+    for directory, directories, files in os.walk(root, followlinks=False):
+        for name in directories + files:
+            path = Path(directory) / name
+            if path.is_symlink() and (
+                name in directories or not path.resolve().is_relative_to(root)
+            ):
+                raise ValueError("Linked folder contains an unsafe symbolic link.")
 
 
 def _is_within(path: Path, root: Path) -> bool:

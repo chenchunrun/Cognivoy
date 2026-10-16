@@ -5,6 +5,7 @@ Manages system status checks and model connection tests
 
 import asyncio
 from datetime import datetime
+import logging
 import time
 from typing import Literal
 
@@ -21,6 +22,16 @@ from cognivoy.services.observability import get_slo_service
 from cognivoy.services.search import web_search
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+
+def _safe_status_error(exc: Exception) -> str:
+    logger.error(
+        "System status check failed",
+        exc_info=(type(exc), exc, exc.__traceback__),
+        extra={"sink": "server"},
+    )
+    return "Status check failed. Check the server log."
 
 
 class TestResponse(BaseModel):
@@ -80,7 +91,7 @@ def _parser_dependency() -> dict[str, object]:
             "detail": readiness.message or readiness.reason,
         }
     except Exception as exc:
-        return {"status": "error", "engine": None, "detail": str(exc)}
+        return {"status": "error", "engine": None, "detail": _safe_status_error(exc)}
 
 
 def _manim_dependency() -> dict[str, object]:
@@ -96,7 +107,7 @@ def _manim_dependency() -> dict[str, object]:
             "install_hint": readiness.install_hint,
         }
     except Exception as exc:
-        return {"status": "error", "missing_dependencies": [], "detail": str(exc)}
+        return {"status": "error", "missing_dependencies": [], "detail": _safe_status_error(exc)}
 
 
 async def _agent_dependency() -> dict[str, object]:
@@ -117,7 +128,7 @@ async def _agent_dependency() -> dict[str, object]:
             "available": 0,
             "total": 0,
             "backends": [],
-            "detail": str(exc),
+            "detail": _safe_status_error(exc),
         }
 
 
@@ -199,10 +210,10 @@ async def get_system_status():
         result["llm"]["status"] = "configured"
     except ValueError as e:
         result["llm"]["status"] = "not_configured"
-        result["llm"]["error"] = str(e)
+        result["llm"]["error"] = _safe_status_error(e)
     except Exception as e:
         result["llm"]["status"] = "error"
-        result["llm"]["error"] = str(e)
+        result["llm"]["error"] = _safe_status_error(e)
 
     # Check Embeddings configuration
     try:
@@ -211,10 +222,10 @@ async def get_system_status():
         result["embeddings"]["status"] = "configured"
     except ValueError as e:
         result["embeddings"]["status"] = "not_configured"
-        result["embeddings"]["error"] = str(e)
+        result["embeddings"]["error"] = _safe_status_error(e)
     except Exception as e:
         result["embeddings"]["status"] = "error"
-        result["embeddings"]["error"] = str(e)
+        result["embeddings"]["error"] = _safe_status_error(e)
 
     try:
         search_config = resolve_search_runtime_config()
@@ -248,7 +259,7 @@ async def get_system_status():
                     result["search"]["error"] = search_config.fallback_reason
     except Exception as e:
         result["search"]["status"] = "error"
-        result["search"]["error"] = str(e)
+        result["search"]["error"] = _safe_status_error(e)
 
     # Non-admin users have no need to know which model the admin configured;
     # exposing the name leaks operational detail and would let curious users

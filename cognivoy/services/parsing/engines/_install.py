@@ -153,8 +153,9 @@ class BackgroundJobManager:
         if process.poll() is None:
             try:
                 process.terminate()
-            except Exception as exc:  # noqa: BLE001
-                return {"ok": False, "message": f"Failed to cancel: {exc}"}
+            except Exception:  # noqa: BLE001
+                logger.exception("Parser job cancellation failed", extra={"sink": "server"})
+                return {"ok": False, "message": "Failed to cancel parser job."}
         return {"ok": True, "message": ""}
 
     # ------------------------------------------------------------------
@@ -183,11 +184,12 @@ class BackgroundJobManager:
                     shell=False,
                     env={**os.environ, **(env or {})},
                 )
-            except Exception as exc:  # noqa: BLE001
+            except Exception:  # noqa: BLE001
                 self._state = "failed"
                 self._kind = kind
                 self._engine = engine
-                self._message = f"Failed to launch: {exc}"
+                logger.exception("Parser job launch failed", extra={"sink": "server"})
+                self._message = "Failed to launch parser job. Check the server log."
                 return {"ok": False, "message": self._message}
             self._state = "running"
             self._kind = kind

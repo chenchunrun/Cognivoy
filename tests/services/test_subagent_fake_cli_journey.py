@@ -131,8 +131,17 @@ async def test_fake_cli_detect_chat_timeout_and_cancel(
     assert result.session_id == "fake-session-1"
     assert any(event.kind == "text" and event.text == "fake answer" for event in events)
 
-    timeout_pid_file = tmp_path / "timeout.pid"
-    monkeypatch.setenv("FAKE_CLAUDE_PID_FILE", str(timeout_pid_file))
+    # Capture the real child at the process boundary: a deadline may expire
+    # before Python starts and writes a PID file, especially on macOS.
+    started_processes = []
+    real_create_subprocess_exec = asyncio.create_subprocess_exec
+
+    async def capture_process(*args, **kwargs):
+        process = await real_create_subprocess_exec(*args, **kwargs)
+        started_processes.append(process)
+        return process
+
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", capture_process)
     with pytest.raises(SubagentTimeoutError):
         await consult_with_timeout(
             fake_backend,
@@ -141,7 +150,8 @@ async def test_fake_cli_detect_chat_timeout_and_cancel(
             on_event=lambda _event: None,
             cwd=str(tmp_path),
         )
-    await _wait_until_stopped(await _wait_for_pid(timeout_pid_file))
+    assert len(started_processes) == 1
+    await _wait_until_stopped(started_processes[0].pid)
 
     cancel_pid_file = tmp_path / "cancel.pid"
     monkeypatch.setenv("FAKE_CLAUDE_PID_FILE", str(cancel_pid_file))

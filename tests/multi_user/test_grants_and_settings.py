@@ -56,3 +56,23 @@ def test_non_admin_settings_catalog_is_forbidden(tmp_path):
         assert exc.value.status_code == 403
     finally:
         reset_current_user(token)
+
+
+@pytest.mark.asyncio
+async def test_non_admin_cannot_discover_models_at_arbitrary_url(tmp_path, monkeypatch):
+    from unittest.mock import AsyncMock
+
+    from cognivoy.services.llm import factory
+
+    fetch = AsyncMock()
+    monkeypatch.setattr(factory, "fetch_models", fetch)
+    token = set_current_user(make_user(tmp_path, role="user"))
+    try:
+        with pytest.raises(HTTPException) as exc:
+            await settings_router.fetch_models_from_provider(
+                settings_router.FetchModelsPayload(base_url="http://127.0.0.1:9999")
+            )
+        assert exc.value.status_code == 403
+        fetch.assert_not_awaited()
+    finally:
+        reset_current_user(token)

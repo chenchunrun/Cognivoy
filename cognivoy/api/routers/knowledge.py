@@ -910,9 +910,8 @@ def _assert_provider_ready(provider: str) -> None:
             raise HTTPException(
                 status_code=400,
                 detail=(
-                    "GraphRAG is not installed. Run "
-                    "`pip install 'cognivoy[graphrag]'` on the server before "
-                    "creating a GraphRAG knowledge base."
+                    "GraphRAG is temporarily disabled pending dependency security compatibility. "
+                    "Use LlamaIndex, keyword/BM25, or LightRAG instead."
                 ),
             )
 
@@ -1379,8 +1378,9 @@ async def health_check():
             "base_dir_exists": manager.base_dir.exists(),
             "knowledge_bases_count": kb_count,
         }
-    except Exception as e:
-        return {"status": "error", "error": str(e), "traceback": traceback.format_exc()}
+    except Exception:
+        logger.exception("Knowledge health check failed", extra={"sink": "server"})
+        return {"status": "error", "error": "Knowledge health check failed."}
 
 
 @router.get("/rag-providers")
@@ -1799,7 +1799,13 @@ async def update_kb_config(kb_name: str, config: dict):
         from cognivoy.services.config import get_kb_config_service
         from cognivoy.services.rag.index_probe import has_ready_provider_index
 
+        manager, kb_name, kb_base_dir = _writable_kb(kb_name)
         config = dict(config or {})
+        # Storage pointers, KB types, and lifecycle state are owned by the
+        # registration/indexing flows. Accepting them here bypasses their
+        # filesystem authorization and can turn a normal KB into a host path.
+        if set(config) - {"rag_provider", "search_mode", "description"}:
+            raise HTTPException(status_code=400, detail="Unsupported knowledge base setting")
         if "rag_provider" in config:
             requested_provider = _validate_registered_provider(config.get("rag_provider"))
             service = get_kb_config_service()
@@ -1808,7 +1814,7 @@ async def update_kb_config(kb_name: str, config: dict):
                 current_config.get("rag_provider") or DEFAULT_PROVIDER
             )
             if requested_provider != current_provider:
-                kb_dir = _current_kb_base_dir() / kb_name
+                kb_dir = kb_base_dir / kb_name
                 if kb_dir.exists() and has_ready_provider_index(kb_dir, current_provider):
                     raise HTTPException(
                         status_code=409,
@@ -3969,12 +3975,15 @@ async def websocket_progress(websocket: WebSocket, kb_name: str):
     await websocket.accept()
 
     broadcaster = ProgressBroadcaster.get_instance()
+    stream_key = None
 
     try:
-        await broadcaster.connect(kb_name, websocket)
-
-        base_dir = _current_kb_base_dir()
+        resource = resolve_kb(kb_name)
+        kb_name = resource.name
+        base_dir = resource.base_dir
         progress_tracker = ProgressTracker(kb_name, base_dir)
+        stream_key = progress_tracker.stream_key
+        await broadcaster.connect(stream_key, websocket)
         initial_progress = progress_tracker.get_progress()
         expected_task_id = websocket.query_params.get("task_id")
 
@@ -4083,6 +4092,8 @@ async def websocket_progress(websocket: WebSocket, kb_name: str):
             except Exception:
                 break
 
+    except HTTPException:
+        await websocket.close(code=1008)
     except Exception as e:
         trace_id = uuid4().hex
         logger.error(
@@ -4104,7 +4115,8 @@ async def websocket_progress(websocket: WebSocket, kb_name: str):
         except Exception:
             pass
     finally:
-        await broadcaster.disconnect(kb_name, websocket)
+        if stream_key is not None:
+            await broadcaster.disconnect(stream_key, websocket)
         try:
             await websocket.close()
         except Exception:

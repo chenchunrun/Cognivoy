@@ -44,7 +44,6 @@ class TestPipelineFactory:
         assert {p["id"] for p in pipelines} == {
             DEFAULT_PROVIDER,
             "pageindex",
-            "graphrag",
             "lightrag",
             "lightrag-server",
             "ima",
@@ -80,7 +79,6 @@ class TestRAGServiceClassHelpers:
         assert {p["id"] for p in providers} == {
             DEFAULT_PROVIDER,
             "pageindex",
-            "graphrag",
             "lightrag",
             "lightrag-server",
             "ima",

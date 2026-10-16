@@ -111,6 +111,9 @@
     "typescript": "^5"
   },
   "overrides": {
+    "postcss-selector-parser": "7.1.6",
+    "js-yaml": "4.3.2",
+    "brace-expansion@>=4.0.0": "5.0.12",
     "uuid": "^11.1.1",
     "source-map-js": "1.2.2",
     "katex": "0.18.2",

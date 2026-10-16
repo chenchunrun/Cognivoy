@@ -113,9 +113,10 @@ class ModelDownloadManager:
                     shell=False,
                     env=env,
                 )
-            except Exception as exc:
+            except Exception:
                 self._state = "failed"
-                self._message = f"Failed to launch downloader: {exc}"
+                logger.exception("Model downloader launch failed", extra={"sink": "server"})
+                self._message = "Failed to launch model downloader. Check the server log."
                 return {"ok": False, "message": self._message}
             self._state = "running"
             self._lines = []
@@ -149,8 +150,9 @@ class ModelDownloadManager:
         if process.poll() is None:
             try:
                 process.terminate()
-            except Exception as exc:
-                return {"ok": False, "message": f"Failed to cancel: {exc}"}
+            except Exception:
+                logger.exception("Model download cancellation failed", extra={"sink": "server"})
+                return {"ok": False, "message": "Failed to cancel model download."}
         return {"ok": True, "message": ""}
 
     # ------------------------------------------------------------------

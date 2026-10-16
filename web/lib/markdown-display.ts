@@ -143,7 +143,7 @@ const INLINE_CODE_SPAN_REGEX = /`[^`\n]*`/g;
 // delimiters — so prose currency like "$5 and $10" is not swallowed, while real
 // inline math ($x = [1, 5, 9]$) is protected from citation linkification.
 const MATH_SPAN_REGEX =
-  /\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|\$\$[\s\S]*?\$\$|\$(?!\s)(?:\\.|[^$\n])*?(?<!\s)\$/g;
+  /\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|\$\$[\s\S]*?\$\$|\$(?!\s)(?:\\[^\n]|[^$\\\n])*?(?<!\s)\$/g;
 const PROTECTED_SPAN_REGEX = /```[\s\S]*?```|`[^`\n]*`/g;
 const PROTECTED_PLACEHOLDER_REGEX = /\u0000PROTECTED_(\d+)\u0000/g;
 const HTML_ATTR_VALUE = /(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+)/.source;
@@ -402,7 +402,7 @@ const EXISTING_RESEARCH_CITATION_LINK_REGEX = new RegExp(
   "gi",
 );
 const REFERENCE_LIST_START_REGEX =
-  /^##\s+(References|参考文献|参考资料)|<details\b[^>]*\bid=["']references["'][^>]*>/im;
+  /(?:^##\s+(References|参考文献|参考资料))|(?:<details\b[^>]*\bid=["']references["'][^>]*>)/im;
 const REFERENCE_LIST_DATA_ID_REGEX =
   /data-citation-id=["'](CIT-\d+-\d+|PLAN-\d+)["']/gi;
 const RESEARCH_CITATION_ID_TEXT_REGEX = /\b(CIT-\d+-\d+|PLAN-\d+)\b/gi;

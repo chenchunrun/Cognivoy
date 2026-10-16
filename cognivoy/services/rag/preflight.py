@@ -126,7 +126,7 @@ def _graphrag_preflight() -> dict:
                 "package",
                 "GraphRAG package installed",
                 installed,
-                "Installed." if installed else "pip install 'cognivoy[graphrag]'",
+                "GraphRAG is temporarily disabled pending dependency security compatibility.",
             ),
             _check(
                 "chat",

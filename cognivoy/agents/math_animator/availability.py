@@ -3,11 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import importlib.util
 import os
 from pathlib import Path
-import shutil
-import subprocess
 
 
 @dataclass(frozen=True, slots=True)
@@ -16,13 +13,6 @@ class MathAnimatorReadiness:
     missing_dependencies: tuple[str, ...]
     install_hint: str
 
-
-_COMMANDS: tuple[tuple[str, str, str], ...] = (
-    ("ffmpeg", "ffmpeg", "-version"),
-    ("ffprobe", "ffprobe", "-version"),
-    ("latex", "LaTeX", "--version"),
-    ("dvisvgm", "dvisvgm", "--version"),
-)
 
 _MACOS_TEX_BIN = Path("/Library/TeX/texbin")
 
@@ -51,59 +41,16 @@ def math_animator_subprocess_env() -> dict[str, str]:
 
 
 def get_math_animator_readiness() -> MathAnimatorReadiness:
-    """Check every runtime needed by generated mathematical scenes.
+    """Fail closed until an isolated renderer is implemented.
 
-    Importing :mod:`manim` alone is insufficient: ``MathTex`` fails later if
-    LaTeX/dvisvgm are missing, and video/review fails without FFmpeg tools.
-    Keeping this check in one module makes the Web catalog, SDK, WebSocket
-    runtime, visualize route, and book animation agree on availability.
+    Installing host dependencies must never enable generated Python execution.
     """
-
-    missing: list[str] = []
-    if importlib.util.find_spec("manim") is None:
-        missing.append("manim")
-    runtime_path = math_animator_subprocess_env().get("PATH")
-    for command, label, version_arg in _COMMANDS:
-        resolved = shutil.which(command, path=runtime_path)
-        if resolved is None or not _command_starts(resolved, version_arg):
-            missing.append(label)
-
-    if not missing:
-        return MathAnimatorReadiness(True, (), "")
-
-    python_hint = (
-        "Install Python support with `pip install -e '.[math-animator]'`. "
-        if "manim" in missing
-        else ""
-    )
-    system_hint = (
-        "Install FFmpeg and a LaTeX distribution that provides `latex` and "
-        "`dvisvgm` (macOS: `brew install ffmpeg` and "
-        "`brew install --cask mactex-no-gui`; Debian/Ubuntu: "
-        "`apt install ffmpeg texlive-latex-extra texlive-fonts-extra dvisvgm`)."
-    )
     return MathAnimatorReadiness(
         False,
-        tuple(missing),
-        f"Missing runtime dependencies: {', '.join(missing)}. {python_hint}{system_hint}",
+        ("isolated-renderer",),
+        "Host execution is disabled for security. An isolated Manim renderer is "
+        "not yet available. Use SVG, Mermaid, or chart visualization instead.",
     )
-
-
-def _command_starts(command: str, version_arg: str) -> bool:
-    """Reject present-but-broken binaries (for example stale dylib links)."""
-
-    try:
-        completed = subprocess.run(
-            [command, version_arg],
-            env=math_animator_subprocess_env(),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            timeout=5,
-            check=False,
-        )
-    except (OSError, subprocess.SubprocessError):
-        return False
-    return completed.returncode == 0
 
 
 def require_math_animator_ready() -> None:

@@ -31,18 +31,15 @@ from cognivoy.services.rag.pipelines.graphrag.pipeline import GraphRagPipeline, 
 # --------------------------------------------------------------------------- #
 
 
-def test_factory_dispatches_graphrag_lazily(tmp_path) -> None:
-    pipe = get_pipeline("graphrag", kb_base_dir=str(tmp_path))
-    assert type(pipe).__name__ == "GraphRagPipeline"
+def test_factory_blocks_graphrag_lazily(tmp_path) -> None:
+    with pytest.raises(gr_config.GraphRagNotAvailableError, match="temporarily disabled"):
+        get_pipeline("graphrag", kb_base_dir=str(tmp_path))
     # Building the pipeline must NOT import the heavy optional dependency.
     assert "graphrag" not in sys.modules
 
 
-def test_list_pipelines_includes_graphrag() -> None:
-    entry = next(p for p in list_pipelines() if p["id"] == GRAPHRAG_PROVIDER)
-    assert entry["requires_api_key"] is False
-    # Not installed in the test env.
-    assert entry["configured"] is False
+def test_list_pipelines_excludes_graphrag() -> None:
+    assert all(p["id"] != GRAPHRAG_PROVIDER for p in list_pipelines())
 
 
 def test_normalize_provider_keeps_graphrag() -> None:
@@ -162,6 +159,8 @@ async def test_engine_public_entrypoints_use_killable_process_boundary(
         return None
 
     monkeypatch.setattr("cognivoy.services.process_isolation.run_in_killable_process", fake_run)
+    # Exercise the retained adapter beneath its independently tested public gate.
+    monkeypatch.setattr(engine, "require_graphrag_enabled", lambda: None)
 
     await engine.build(tmp_path, is_update=True)
     assert await engine.search(tmp_path, "query", "local") == (
@@ -324,7 +323,13 @@ def test_ingestion_avoids_name_collisions(tmp_path) -> None:
 
 
 def _force_available(monkeypatch, available: bool = True) -> None:
-    monkeypatch.setattr(gr_config, "is_graphrag_available", lambda: available)
+    # These orchestration tests exercise retained implementation below the gate;
+    # test_graphrag_disabled separately verifies the production gate cannot open.
+    def guard():
+        if not available:
+            raise gr_config.GraphRagNotAvailableError("GraphRAG is temporarily disabled")
+
+    monkeypatch.setattr(gr_config, "require_graphrag_enabled", guard)
 
 
 def _stub_build(monkeypatch) -> list[dict]:

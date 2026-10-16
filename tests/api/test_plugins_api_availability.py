@@ -115,24 +115,11 @@ def test_catalog_exposes_execution_policy(monkeypatch):
     assert payload["execution_enabled"] is False
 
 
-def test_catalog_rejects_partial_manim_environment(monkeypatch):
-    monkeypatch.setattr(
-        "cognivoy.agents.math_animator.availability.importlib.util.find_spec",
-        lambda _name: object(),
-    )
-    monkeypatch.setattr(
-        "cognivoy.agents.math_animator.availability.shutil.which",
-        lambda command, **_kwargs: None if command in {"latex", "dvisvgm"} else f"/bin/{command}",
-    )
-    monkeypatch.setattr(
-        "cognivoy.agents.math_animator.availability._command_starts",
-        lambda _command, _version_arg: True,
-    )
-
+def test_catalog_rejects_unisolated_manim_execution():
     payload = _client().get("/api/v1/plugins/list").json()
     animator = next(item for item in payload["capabilities"] if item["name"] == "math_animator")
     assert animator["availability"]["available"] is False
-    assert animator["availability"]["missing_dependencies"] == ["LaTeX", "dvisvgm"]
+    assert animator["availability"]["missing_dependencies"] == ["isolated-renderer"]
 
 
 def test_math_animator_source_can_be_edited_and_rerendered(monkeypatch):

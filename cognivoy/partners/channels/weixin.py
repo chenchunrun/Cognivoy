@@ -13,7 +13,6 @@ import asyncio
 import base64
 from collections import OrderedDict
 from contextlib import suppress
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -21,7 +20,6 @@ import random
 import re
 import time
 from typing import Any
-from urllib.parse import quote
 import uuid
 
 import httpx
@@ -31,9 +29,9 @@ from pydantic import Field
 from cognivoy.partners.bus.events import OutboundMessage
 from cognivoy.partners.bus.queue import MessageBus
 from cognivoy.partners.channels.base import BaseChannel
-from cognivoy.partners.config.paths import get_media_dir, get_runtime_subdir
+from cognivoy.partners.config.paths import get_runtime_subdir
 from cognivoy.partners.config.schema import DeliveryOverrides
-from cognivoy.partners.helpers import safe_filename, split_message
+from cognivoy.partners.helpers import split_message
 
 # ---------------------------------------------------------------------------
 # Protocol constants (from openclaw-weixin types.ts)
@@ -100,6 +98,11 @@ CONFIG_CACHE_MAX_RETRY_S = 60 * 60
 
 # Default long-poll timeout; overridden by server via longpolling_timeout_ms.
 DEFAULT_LONG_POLL_TIMEOUT_S = 35
+
+WEIXIN_MEDIA_DISABLED_MESSAGE = (
+    "WeChat media transfer is disabled for security. Please use text chat or the Web app. "
+    "微信媒体传输因安全原因暂时禁用，请使用文字聊天或网页应用。"
+)
 
 # Media-type codes for getuploadurl  (1=image, 2=video, 3=file, 4=voice)
 UPLOAD_MEDIA_IMAGE = 1
@@ -640,7 +643,6 @@ class WeixinChannel(BaseChannel):
         item_list: list[dict] = msg.get("item_list") or []
         content_parts: list[str] = []
         media_paths: list[str] = []
-        has_top_level_downloadable_media = False
 
         for item in item_list:
             item_type = item.get("type", 0)
@@ -675,109 +677,8 @@ class WeixinChannel(BaseChannel):
                     else:
                         content_parts.append(text)
 
-            elif item_type == ITEM_IMAGE:
-                image_item = item.get("image_item") or {}
-                if _has_downloadable_media_locator(image_item.get("media")):
-                    has_top_level_downloadable_media = True
-                file_path = await self._download_media_item(image_item, "image")
-                if file_path:
-                    content_parts.append(f"[image]\n[Image: source: {file_path}]")
-                    media_paths.append(file_path)
-                else:
-                    content_parts.append("[image]")
-
-            elif item_type == ITEM_VOICE:
-                voice_item = item.get("voice_item") or {}
-                # Voice-to-text provided by WeChat (inbound.ts:101-103)
-                voice_text = voice_item.get("text", "")
-                if voice_text:
-                    content_parts.append(f"[voice] {voice_text}")
-                else:
-                    if _has_downloadable_media_locator(voice_item.get("media")):
-                        has_top_level_downloadable_media = True
-                    file_path = await self._download_media_item(voice_item, "voice")
-                    if file_path:
-                        transcription = await self.transcribe_audio(file_path)
-                        if transcription:
-                            content_parts.append(f"[voice] {transcription}")
-                        else:
-                            content_parts.append(f"[voice]\n[Audio: source: {file_path}]")
-                        media_paths.append(file_path)
-                    else:
-                        content_parts.append("[voice]")
-
-            elif item_type == ITEM_FILE:
-                file_item = item.get("file_item") or {}
-                if _has_downloadable_media_locator(file_item.get("media")):
-                    has_top_level_downloadable_media = True
-                file_name = file_item.get("file_name", "unknown")
-                file_path = await self._download_media_item(
-                    file_item,
-                    "file",
-                    file_name,
-                )
-                if file_path:
-                    content_parts.append(f"[file: {file_name}]\n[File: source: {file_path}]")
-                    media_paths.append(file_path)
-                else:
-                    content_parts.append(f"[file: {file_name}]")
-
-            elif item_type == ITEM_VIDEO:
-                video_item = item.get("video_item") or {}
-                if _has_downloadable_media_locator(video_item.get("media")):
-                    has_top_level_downloadable_media = True
-                file_path = await self._download_media_item(video_item, "video")
-                if file_path:
-                    content_parts.append(f"[video]\n[Video: source: {file_path}]")
-                    media_paths.append(file_path)
-                else:
-                    content_parts.append("[video]")
-
-        # Fallback: when no top-level media was downloaded, try quoted/referenced media.
-        # This aligns with the reference plugin behavior that checks ref_msg.message_item
-        # when main item_list has no downloadable media.
-        if not media_paths and not has_top_level_downloadable_media:
-            ref_media_item: dict[str, Any] | None = None
-            for item in item_list:
-                if item.get("type", 0) != ITEM_TEXT:
-                    continue
-                ref = item.get("ref_msg") or {}
-                candidate = ref.get("message_item") or {}
-                if candidate.get("type", 0) in (ITEM_IMAGE, ITEM_VOICE, ITEM_FILE, ITEM_VIDEO):
-                    ref_media_item = candidate
-                    break
-
-            if ref_media_item:
-                ref_type = ref_media_item.get("type", 0)
-                if ref_type == ITEM_IMAGE:
-                    image_item = ref_media_item.get("image_item") or {}
-                    file_path = await self._download_media_item(image_item, "image")
-                    if file_path:
-                        content_parts.append(f"[image]\n[Image: source: {file_path}]")
-                        media_paths.append(file_path)
-                elif ref_type == ITEM_VOICE:
-                    voice_item = ref_media_item.get("voice_item") or {}
-                    file_path = await self._download_media_item(voice_item, "voice")
-                    if file_path:
-                        transcription = await self.transcribe_audio(file_path)
-                        if transcription:
-                            content_parts.append(f"[voice] {transcription}")
-                        else:
-                            content_parts.append(f"[voice]\n[Audio: source: {file_path}]")
-                        media_paths.append(file_path)
-                elif ref_type == ITEM_FILE:
-                    file_item = ref_media_item.get("file_item") or {}
-                    file_name = file_item.get("file_name", "unknown")
-                    file_path = await self._download_media_item(file_item, "file", file_name)
-                    if file_path:
-                        content_parts.append(f"[file: {file_name}]\n[File: source: {file_path}]")
-                        media_paths.append(file_path)
-                elif ref_type == ITEM_VIDEO:
-                    video_item = ref_media_item.get("video_item") or {}
-                    file_path = await self._download_media_item(video_item, "video")
-                    if file_path:
-                        content_parts.append(f"[video]\n[Video: source: {file_path}]")
-                        media_paths.append(file_path)
+            elif item_type in (ITEM_IMAGE, ITEM_VOICE, ITEM_FILE, ITEM_VIDEO):
+                content_parts.append(WEIXIN_MEDIA_DISABLED_MESSAGE)
 
         content = "\n".join(content_parts)
         if not content:
@@ -810,94 +711,8 @@ class WeixinChannel(BaseChannel):
         media_type: str,
         filename: str | None = None,
     ) -> str | None:
-        """Download + AES-decrypt a media item. Returns local path or None."""
-        try:
-            media = typed_item.get("media") or {}
-            encrypt_query_param = str(media.get("encrypt_query_param", "") or "")
-            full_url = str(media.get("full_url", "") or "").strip()
-
-            if not encrypt_query_param and not full_url:
-                return None
-
-            # Resolve AES key (media-download.ts:43-45, pic-decrypt.ts:40-52)
-            # image_item.aeskey is a raw hex string (16 bytes as 32 hex chars).
-            # media.aes_key is always base64-encoded.
-            # For images, prefer image_item.aeskey; for others use media.aes_key.
-            raw_aeskey_hex = typed_item.get("aeskey", "")
-            media_aes_key_b64 = media.get("aes_key", "")
-
-            aes_key_b64: str = ""
-            if raw_aeskey_hex:
-                # Convert hex → raw bytes → base64 (matches media-download.ts:43-44)
-                aes_key_b64 = base64.b64encode(bytes.fromhex(raw_aeskey_hex)).decode()
-            elif media_aes_key_b64:
-                aes_key_b64 = media_aes_key_b64
-
-            # Reference protocol behavior: VOICE/FILE/VIDEO require aes_key;
-            # only IMAGE may be downloaded as plain bytes when key is missing.
-            if media_type != "image" and not aes_key_b64:
-                return None
-
-            assert self._client is not None
-            fallback_url = ""
-            if encrypt_query_param:
-                fallback_url = (
-                    f"{self.config.cdn_base_url}/download"
-                    f"?encrypted_query_param={quote(encrypt_query_param)}"
-                )
-
-            download_candidates: list[tuple[str, str]] = []
-            if full_url:
-                download_candidates.append(("full_url", full_url))
-            if fallback_url and (not full_url or fallback_url != full_url):
-                download_candidates.append(("encrypt_query_param", fallback_url))
-
-            data = b""
-            for idx, (download_source, cdn_url) in enumerate(download_candidates):
-                try:
-                    resp = await self._client.get(cdn_url)
-                    resp.raise_for_status()
-                    data = resp.content
-                    break
-                except Exception as e:
-                    has_more_candidates = idx + 1 < len(download_candidates)
-                    should_fallback = (
-                        download_source == "full_url"
-                        and has_more_candidates
-                        and self._is_retryable_media_download_error(e)
-                    )
-                    if should_fallback:
-                        self.logger.warning(
-                            "media download failed via full_url, falling back to encrypt_query_param: type={} err={}",
-                            media_type,
-                            e,
-                        )
-                        continue
-                    raise
-
-            if aes_key_b64 and data:
-                data = _decrypt_aes_ecb(data, aes_key_b64)
-
-            if not data:
-                return None
-
-            media_dir = get_media_dir("weixin")
-            ext = _ext_for_type(media_type)
-            if not filename:
-                ts = int(time.time())
-                hash_seed = encrypt_query_param or full_url
-                h = abs(hash(hash_seed)) % 100000
-                filename = f"{media_type}_{ts}_{h}{ext}"
-            safe_name = (
-                safe_filename(os.path.basename(filename)) or f"{media_type}_{int(time.time())}{ext}"
-            )
-            file_path = media_dir / safe_name
-            file_path.write_bytes(data)
-            return str(file_path)
-
-        except Exception:
-            self.logger.exception("Error downloading media")
-            return None
+        """Media downloads are disabled; never contact the CDN."""
+        return None
 
     # ------------------------------------------------------------------
     # Outbound  (matches send.ts buildTextMessageReq + sendMessageWeixin)
@@ -1125,53 +940,8 @@ class WeixinChannel(BaseChannel):
             )
 
         try:
-            # --- Send media files first (following Telegram channel pattern) ---
-            for media_path in msg.media or []:
-                try:
-                    await self._send_media_file(msg.chat_id, media_path, ctx_token)
-                except (httpx.TimeoutException, httpx.TransportError):
-                    # Network/transport errors: do NOT fall back to text —
-                    # the text send would also likely fail, and the outer
-                    # except will re-raise so ChannelManager retries properly.
-                    self.logger.opt(exception=True).warning(
-                        "Network error sending media {}",
-                        media_path,
-                    )
-                    raise
-                except httpx.HTTPStatusError as http_err:
-                    status_code = (
-                        http_err.response.status_code if http_err.response is not None else 0
-                    )
-                    if status_code >= 500:
-                        # Server-side / retryable HTTP error — same as network.
-                        self.logger.exception(
-                            "Server error ({} {}) sending media {}",
-                            status_code,
-                            http_err.response.reason_phrase
-                            if http_err.response is not None
-                            else "",
-                            media_path,
-                        )
-                        raise
-                    # 4xx client errors are NOT retryable — fall back to text.
-                    filename = Path(media_path).name
-                    self.logger.exception("Failed to send media {}", media_path)
-                    await self._send_text(
-                        msg.chat_id,
-                        f"[Failed to send: {filename}]",
-                        ctx_token,
-                    )
-                except Exception:
-                    # Non-network errors (format, file-not-found, etc.):
-                    # notify the user via text fallback.
-                    filename = Path(media_path).name
-                    self.logger.exception("Failed to send media {}", media_path)
-                    # Notify user about failure via text
-                    await self._send_text(
-                        msg.chat_id,
-                        f"[Failed to send: {filename}]",
-                        ctx_token,
-                    )
+            if msg.media:
+                await self._send_text(msg.chat_id, WEIXIN_MEDIA_DISABLED_MESSAGE, ctx_token)
 
             # --- Send text content ---
             if not content:
@@ -1302,150 +1072,8 @@ class WeixinChannel(BaseChannel):
         media_path: str,
         context_token: str,
     ) -> None:
-        """Upload a local file to WeChat CDN and send it as a media message.
-
-        Follows the exact protocol from ``@tencent-weixin/openclaw-weixin`` v1.0.3:
-        1. Generate a random 16-byte AES key (client-side).
-        2. Call ``getuploadurl`` with file metadata + hex-encoded AES key.
-        3. AES-128-ECB encrypt the file and POST to CDN (``{cdnBaseUrl}/upload``).
-        4. Read ``x-encrypted-param`` header from CDN response as the download param.
-        5. Send a ``sendmessage`` with the appropriate media item referencing the upload.
-        """
-        p = Path(media_path)
-        if not p.is_file():
-            raise FileNotFoundError(f"Media file not found: {media_path}")
-
-        raw_data = p.read_bytes()
-        raw_size = len(raw_data)
-        raw_md5 = hashlib.md5(raw_data, usedforsecurity=False).hexdigest()
-
-        # Determine upload media type from extension
-        ext = p.suffix.lower()
-        if ext in _IMAGE_EXTS:
-            upload_type = UPLOAD_MEDIA_IMAGE
-            item_type = ITEM_IMAGE
-            item_key = "image_item"
-        elif ext in _VIDEO_EXTS:
-            upload_type = UPLOAD_MEDIA_VIDEO
-            item_type = ITEM_VIDEO
-            item_key = "video_item"
-        elif ext in _VOICE_EXTS:
-            upload_type = UPLOAD_MEDIA_VOICE
-            item_type = ITEM_VOICE
-            item_key = "voice_item"
-        else:
-            upload_type = UPLOAD_MEDIA_FILE
-            item_type = ITEM_FILE
-            item_key = "file_item"
-
-        # Generate client-side AES-128 key (16 random bytes)
-        aes_key_raw = os.urandom(16)
-        aes_key_hex = aes_key_raw.hex()
-
-        # Compute encrypted size: PKCS7 padding to 16-byte boundary
-        # Matches aesEcbPaddedSize: Math.ceil((size + 1) / 16) * 16
-        padded_size = ((raw_size + 1 + 15) // 16) * 16
-
-        # Step 1: Get upload URL from server (prefer upload_full_url, fallback to upload_param)
-        file_key = os.urandom(16).hex()
-        upload_body: dict[str, Any] = {
-            "filekey": file_key,
-            "media_type": upload_type,
-            "to_user_id": to_user_id,
-            "rawsize": raw_size,
-            "rawfilemd5": raw_md5,
-            "filesize": padded_size,
-            "no_need_thumb": True,
-            "aeskey": aes_key_hex,
-        }
-
-        assert self._client is not None
-        upload_resp = await self._api_post("ilink/bot/getuploadurl", upload_body)
-
-        upload_full_url = str(upload_resp.get("upload_full_url", "") or "").strip()
-        upload_param = str(upload_resp.get("upload_param", "") or "")
-        if not upload_full_url and not upload_param:
-            raise RuntimeError(
-                "getuploadurl returned no upload URL "
-                f"(need upload_full_url or upload_param): {upload_resp}"
-            )
-
-        # Step 2: AES-128-ECB encrypt and POST to CDN
-        aes_key_b64 = base64.b64encode(aes_key_raw).decode()
-        encrypted_data = _encrypt_aes_ecb(raw_data, aes_key_b64)
-
-        if upload_full_url:
-            cdn_upload_url = upload_full_url
-        else:
-            cdn_upload_url = (
-                f"{self.config.cdn_base_url}/upload"
-                f"?encrypted_query_param={quote(upload_param)}"
-                f"&filekey={quote(file_key)}"
-            )
-
-        cdn_resp = await self._client.post(
-            cdn_upload_url,
-            content=encrypted_data,
-            headers={"Content-Type": "application/octet-stream"},
-        )
-        cdn_resp.raise_for_status()
-
-        # The download encrypted_query_param comes from CDN response header
-        download_param = cdn_resp.headers.get("x-encrypted-param", "")
-        if not download_param:
-            raise RuntimeError(
-                "CDN upload response missing x-encrypted-param header; "
-                f"status={cdn_resp.status_code} headers={dict(cdn_resp.headers)}"
-            )
-
-        # Step 3: Send message with the media item
-        # aes_key for CDNMedia is the hex key encoded as base64
-        # (matches: Buffer.from(uploaded.aeskey).toString("base64"))
-        cdn_aes_key_b64 = base64.b64encode(aes_key_hex.encode()).decode()
-
-        media_item: dict[str, Any] = {
-            "media": {
-                "encrypt_query_param": download_param,
-                "aes_key": cdn_aes_key_b64,
-                "encrypt_type": 1,
-            },
-        }
-
-        if item_type == ITEM_IMAGE:
-            media_item["mid_size"] = padded_size
-        elif item_type == ITEM_VIDEO:
-            media_item["video_size"] = padded_size
-        elif item_type == ITEM_FILE:
-            media_item["file_name"] = p.name
-            media_item["len"] = str(raw_size)
-
-        # Send each media item as its own message (matching reference plugin)
-        client_id = f"cognivoy-{uuid.uuid4().hex[:12]}"
-        item_list: list[dict] = [{"type": item_type, item_key: media_item}]
-
-        weixin_msg: dict[str, Any] = {
-            "from_user_id": "",
-            "to_user_id": to_user_id,
-            "client_id": client_id,
-            "message_type": MESSAGE_TYPE_BOT,
-            "message_state": MESSAGE_STATE_FINISH,
-            "item_list": item_list,
-        }
-        if context_token:
-            weixin_msg["context_token"] = context_token
-
-        body: dict[str, Any] = {
-            "msg": weixin_msg,
-            "base_info": BASE_INFO,
-        }
-
-        data = await self._api_post("ilink/bot/sendmessage", body)
-        ret = data.get("ret", 0)
-        errcode = data.get("errcode", 0)
-        if (ret is not None and ret != 0) or (errcode is not None and errcode != 0):
-            raise RuntimeError(
-                f"WeChat send media error (ret={ret}, errcode={errcode}): {data.get('errmsg', '')}"
-            )
+        """Fail closed before reading files or sending media bytes."""
+        raise RuntimeError(WEIXIN_MEDIA_DISABLED_MESSAGE)
 
 
 # ---------------------------------------------------------------------------
@@ -1476,69 +1104,13 @@ def _parse_aes_key(aes_key_b64: str) -> bytes:
 
 
 def _encrypt_aes_ecb(data: bytes, aes_key_b64: str) -> bytes:
-    """Encrypt data with AES-128-ECB and PKCS7 padding for CDN upload."""
-    try:
-        key = _parse_aes_key(aes_key_b64)
-    except Exception as e:
-        logger.warning("Failed to parse AES key for encryption, sending raw: {}", e)
-        return data
-
-    # PKCS7 padding
-    pad_len = 16 - len(data) % 16
-    padded = data + bytes([pad_len] * pad_len)
-
-    # AES-128-ECB is mandated by the WeChat CDN media protocol — not our choice.
-    # The ``Crypto`` namespace is provided by the maintained pycryptodome fork.
-    with suppress(ImportError):
-        from Crypto.Cipher import AES  # nosec B413
-
-        cipher = AES.new(key, AES.MODE_ECB)
-        return cipher.encrypt(padded)
-
-    try:
-        from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-
-        cipher_obj = Cipher(algorithms.AES(key), modes.ECB())  # nosec B305
-        encryptor = cipher_obj.encryptor()
-        return encryptor.update(padded) + encryptor.finalize()
-    except ImportError:
-        logger.warning("Cannot encrypt media: install 'pycryptodome' or 'cryptography'")
-        return data
+    """Legacy entry point retained only to fail closed."""
+    raise RuntimeError(WEIXIN_MEDIA_DISABLED_MESSAGE)
 
 
 def _decrypt_aes_ecb(data: bytes, aes_key_b64: str) -> bytes:
-    """Decrypt AES-128-ECB media data.
-
-    ``aes_key_b64`` is always base64-encoded (caller converts hex keys first).
-    """
-    try:
-        key = _parse_aes_key(aes_key_b64)
-    except Exception as e:
-        logger.warning("Failed to parse AES key, returning raw data: {}", e)
-        return data
-
-    decrypted: bytes | None = None
-
-    # AES-128-ECB is mandated by the WeChat CDN media protocol — not our choice.
-    # The ``Crypto`` namespace is provided by the maintained pycryptodome fork.
-    with suppress(ImportError):
-        from Crypto.Cipher import AES  # nosec B413
-
-        cipher = AES.new(key, AES.MODE_ECB)
-        decrypted = cipher.decrypt(data)
-
-    if decrypted is None:
-        try:
-            from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-
-            cipher_obj = Cipher(algorithms.AES(key), modes.ECB())  # nosec B305
-            decryptor = cipher_obj.decryptor()
-            decrypted = decryptor.update(data) + decryptor.finalize()
-        except ImportError:
-            logger.warning("Cannot decrypt media: install 'pycryptodome' or 'cryptography'")
-            return data
-
-    return _pkcs7_unpad_safe(decrypted)
+    """Legacy entry point retained only to fail closed."""
+    raise RuntimeError(WEIXIN_MEDIA_DISABLED_MESSAGE)
 
 
 def _pkcs7_unpad_safe(data: bytes, block_size: int = 16) -> bytes:

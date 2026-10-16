@@ -36,7 +36,14 @@ class JsonlFormatter(logging.Formatter):
         }
         if record.exc_info:
             entry["exception"] = self.formatException(record.exc_info)
-        return json.dumps(entry, ensure_ascii=False, default=str)
+        # JSON escapes CR/LF and terminal controls; additionally escape Unicode
+        # line separators so line-oriented log readers retain record boundaries.
+        return (
+            json.dumps(entry, ensure_ascii=False, default=str)
+            .replace("\u2028", "\\u2028")
+            .replace("\u2029", "\\u2029")
+            .replace("\u0085", "\\u0085")
+        )
 
 
 class ConsoleFormatter(logging.Formatter):
@@ -46,4 +53,13 @@ class ConsoleFormatter(logging.Formatter):
         context = getattr(record, "log_context", {}) or {}
         stage = f" @{context['stage']}" if context.get("stage") else ""
         task = f" #{context['task_id']}" if context.get("task_id") else ""
-        return f"{record.levelname:<7} {record.name}{stage}{task} - {record.getMessage()}"
+        line = f"{record.levelname:<7} {record.name}{stage}{task} - {record.getMessage()}"
+        # Escape control characters at the final sink, including context fields.
+        # A filename, provider response, or terminal escape must never forge a
+        # second log record or rewrite the operator's terminal.
+        return "".join(
+            f"\\u{ord(char):04x}"
+            if ord(char) < 32 or 127 <= ord(char) <= 159 or char in "\u2028\u2029"
+            else char
+            for char in line
+        )

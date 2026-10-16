@@ -2,22 +2,18 @@
 
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
 import re
-import subprocess
-import sys
-import threading
 from typing import Awaitable, Callable
 
 from cognivoy.services.path_service import get_path_service
 
-from .availability import math_animator_subprocess_env
+from .availability import require_math_animator_ready
 from .models import RenderedArtifact, RenderResult
-from .utils import slugify_filename, trim_error_message
+from .utils import slugify_filename
 
 YON_IMAGE_PATTERN = re.compile(
-    r"###\s*YON_IMAGE_(\d+)_START\s*###\s*(.*?)\s*###\s*YON_IMAGE_\1_END\s*###",
+    r"###\s*YON_IMAGE_(\d+)_START\s*###(.*?)###\s*YON_IMAGE_\1_END\s*###",
     re.DOTALL | re.IGNORECASE,
 )
 SCENE_PATTERN = re.compile(r"class\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*.*?Scene.*?\)\s*:")
@@ -60,6 +56,7 @@ class ManimRenderService:
         height: int | None = None,
         fps: int | None = None,
     ) -> RenderResult:
+        require_math_animator_ready()
         await self._emit_progress(f"Preparing {output_mode} render workspace (quality={quality}).")
         source_name = "scene.py" if output_mode == "video" else "scene_image.py"
         source_path = self.source_dir / source_name
@@ -124,47 +121,10 @@ class ManimRenderService:
         height: int | None,
         fps: int | None,
     ) -> list[RenderedArtifact]:
-        matches = list(YON_IMAGE_PATTERN.finditer(code))
-        if not matches:
-            raise ManimRenderError(
-                "Image mode requires code blocks wrapped in ### YON_IMAGE_n_START ### / END ###."
-            )
-
-        residual = YON_IMAGE_PATTERN.sub("", code).strip()
-        if residual:
-            raise ManimRenderError("Image mode code must only contain YON_IMAGE anchor blocks.")
-
-        artifacts: list[RenderedArtifact] = []
-        for idx, match in enumerate(matches, start=1):
-            block_code = match.group(2).strip()
-            block_path = self.source_dir / f"image_block_{idx:02d}.py"
-            block_path.write_text(block_code, encoding="utf-8")
-            scene_name = self._extract_scene_name(block_code)
-            await self._emit_progress(
-                f"Rendering image block {idx}/{len(matches)} with scene `{scene_name}`."
-            )
-            await self._run_manim(
-                code_path=block_path,
-                scene_name=scene_name,
-                quality=quality,
-                width=width,
-                height=height,
-                fps=fps,
-                save_last_frame=True,
-            )
-            image_file = self._find_rendered_file(".png")
-            artifact_path = self.artifacts_dir / f"image-{idx:02d}.png"
-            artifact_path.write_bytes(image_file.read_bytes())
-            await self._emit_progress(f"Saved image artifact {artifact_path.name}.")
-            artifacts.append(
-                self._build_artifact(
-                    artifact_path,
-                    "image",
-                    "image/png",
-                    f"Image {idx}",
-                )
-            )
-        return artifacts
+        # The disabled image entry must not parse or persist model-generated
+        # code even if a caller bypasses the public render method.
+        require_math_animator_ready()
+        raise ManimRenderError("Isolated image renderer is unavailable.")
 
     async def _run_manim(
         self,
@@ -177,92 +137,8 @@ class ManimRenderService:
         height: int | None,
         fps: int | None,
     ) -> None:
-        quality_flag = QUALITY_FLAG_MAP.get(quality, "-qm")
-        command = [
-            sys.executable,
-            "-m",
-            "manim",
-            quality_flag,
-            str(code_path),
-            scene_name,
-            "--media_dir",
-            str(self.media_dir),
-            "--progress_bar",
-            "none",
-        ]
-        if save_last_frame:
-            command.append("-s")
-        else:
-            command.extend(["--format", "mp4"])
-        if width is not None and height is not None:
-            command.extend(["--resolution", f"{width},{height}"])
-        if fps is not None:
-            command.extend(["--frame_rate", str(fps)])
-
-        await self._emit_progress(
-            f"Started Manim process for `{scene_name}` with command: {' '.join(command)}",
-            raw=True,
-        )
-
-        # Use subprocess.Popen instead of asyncio.create_subprocess_exec
-        # for Windows compatibility (SelectorEventLoop doesn't support
-        # asyncio subprocesses). Reader threads + asyncio.Queue preserve
-        # real-time streaming output.
-        process = subprocess.Popen(
-            command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            env=math_animator_subprocess_env(),
-        )
-
-        _SENTINEL = None
-        queue: asyncio.Queue[tuple[str, str] | None] = asyncio.Queue()
-        loop = asyncio.get_running_loop()
-
-        def _reader(stream, prefix: str) -> None:
-            assert stream is not None
-            for raw_line in stream:
-                line = raw_line.decode(errors="ignore").strip()
-                if line:
-                    loop.call_soon_threadsafe(queue.put_nowait, (prefix, line))
-            loop.call_soon_threadsafe(queue.put_nowait, _SENTINEL)
-
-        threading.Thread(target=_reader, args=(process.stdout, "stdout"), daemon=True).start()
-        threading.Thread(target=_reader, args=(process.stderr, "stderr"), daemon=True).start()
-
-        stdout_lines: list[str] = []
-        stderr_lines: list[str] = []
-        streams_open = 2
-        try:
-            while streams_open > 0:
-                item = await queue.get()
-                if item is _SENTINEL:
-                    streams_open -= 1
-                    continue
-                prefix, line = item
-                (stdout_lines if prefix == "stdout" else stderr_lines).append(line)
-                await self._emit_progress(f"[{prefix}] {line}", raw=True)
-        except asyncio.CancelledError:
-            # A capability deadline must not leave an expensive Manim/ffmpeg
-            # subprocess running after the owning turn has settled.
-            process.terminate()
-            try:
-                await asyncio.to_thread(process.wait, timeout=5)
-            except subprocess.TimeoutExpired:
-                process.kill()
-                await asyncio.to_thread(process.wait)
-            raise
-
-        return_code = process.wait()
-        await self._emit_progress(f"Manim process finished with exit code {return_code}.", raw=True)
-        if return_code != 0:
-            raise ManimRenderError(
-                trim_error_message(
-                    "\n".join(
-                        part for part in ["\n".join(stdout_lines), "\n".join(stderr_lines)] if part
-                    )
-                )
-            )
+        # Never execute model-generated Python in the application host process.
+        require_math_animator_ready()
 
     async def _emit_progress(self, message: str, raw: bool = False) -> None:
         if self.progress_callback is None:

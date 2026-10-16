@@ -118,7 +118,8 @@ async def test_run_records_error_when_runner_raises(manager: RunManager) -> None
     if run._task is not None:
         await run._task
     assert run.status == "error"
-    assert "kaboom" in (run.error or "")
+    assert run.error == "Memory consolidation failed. Check the server log."
+    assert "kaboom" not in repr([event.payload for event in run.events])
 
 
 @pytest.mark.asyncio

@@ -199,10 +199,9 @@ class TestInboundProcessing:
         ch.bus.publish_inbound.assert_not_awaited()
 
     @pytest.mark.asyncio
-    async def test_image_download_path_is_attached(self, state_dir):
+    async def test_image_is_not_downloaded_and_reports_disabled(self, state_dir):
         ch = _make_channel(state_dir=str(state_dir))
         ch._start_typing = AsyncMock()
-        ch._download_media_item = AsyncMock(return_value="/tmp/weixin-image.jpg")
         msg = _text_msg(
             item_list=[
                 {
@@ -217,11 +216,38 @@ class TestInboundProcessing:
         await ch._process_message(msg)
 
         published = ch.bus.publish_inbound.call_args[0][0]
-        assert "[Image: source: /tmp/weixin-image.jpg]" in published.content
-        assert published.media == ["/tmp/weixin-image.jpg"]
+        assert "disabled for security" in published.content
+        assert not published.media
 
 
 class TestOutbound:
+    @pytest.mark.asyncio
+    async def test_media_send_keeps_text_without_accessing_attachment(self, state_dir):
+        ch = _make_channel(state_dir=str(state_dir))
+        ch._client = object()
+        ch._token = "token"
+        ch._context_tokens["wx-user-1"] = "ctx-1"
+        ch._context_token_at["wx-user-1"] = time.time()
+        ch._api_post = AsyncMock(return_value={"ret": 0, "errcode": 0})
+        ch._get_typing_ticket = AsyncMock(return_value="")
+        ch._stop_typing = AsyncMock()
+
+        await ch.send(
+            OutboundMessage(
+                channel="weixin",
+                chat_id="wx-user-1",
+                content="hello",
+                media=["/nonexistent/private.txt"],
+            )
+        )
+
+        calls = ch._api_post.await_args_list
+        assert len(calls) == 2
+        assert all(call.args[0] == "ilink/bot/sendmessage" for call in calls)
+        texts = [call.args[1]["msg"]["item_list"][0]["text_item"]["text"] for call in calls]
+        assert "hello" in texts
+        assert weixin_mod.WEIXIN_MEDIA_DISABLED_MESSAGE in texts
+
     @pytest.mark.asyncio
     async def test_send_requires_authenticated_client(self, state_dir):
         ch = _make_channel(state_dir=str(state_dir))
@@ -329,6 +355,17 @@ class TestOutbound:
 
 
 class TestCryptoHelpers:
+    @pytest.mark.parametrize("name", ["_encrypt_aes_ecb", "_decrypt_aes_ecb"])
+    def test_legacy_crypto_cannot_return_plaintext(self, name):
+        with pytest.raises(RuntimeError, match="disabled for security"):
+            getattr(weixin_mod, name)(b"private content", "invalid-key")
+
+    @pytest.mark.asyncio
+    async def test_direct_upload_is_blocked_before_file_access(self, state_dir):
+        ch = _make_channel(state_dir=str(state_dir))
+        with pytest.raises(RuntimeError, match="disabled for security"):
+            await ch._send_media_file("recipient", "/nonexistent/private.txt", "ctx")
+
     def test_parse_raw_aes_key(self):
         raw = b"1234567890abcdef"
         assert _parse_aes_key(base64.b64encode(raw).decode()) == raw

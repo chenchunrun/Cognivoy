@@ -6,8 +6,8 @@ today:
 * ``llamaindex`` (default) — local vector retrieval with hybrid BM25 fusion.
 * ``pageindex``           — hosted, vectorless reasoning retrieval (needs an
                             API key configured under Knowledge → RAG settings).
-* ``graphrag``            — local knowledge-graph retrieval (microsoft/graphrag);
-                            optional dependency, ``pip install 'cognivoy[graphrag]'``.
+* ``graphrag``            — temporarily disabled; stored provider identity is
+                            retained so existing indexes are not reinterpreted.
 * ``lightrag``            — graph + vector retrieval (HKUDS/LightRAG, multimodal
                             via RAG-Anything); optional dependency,
                             ``pip install 'cognivoy[rag-lightrag]'``.
@@ -34,8 +34,8 @@ LIGHTRAG_PROVIDER = "lightrag"
 LIGHTRAG_SERVER_PROVIDER = "lightrag-server"
 IMA_PROVIDER = "ima"
 
-# Providers the factory can instantiate. Unknown / legacy strings fall back to
-# the default with a re-index hint upstream.
+# Recognized provider identities, including disabled GraphRAG so old indexes
+# cannot silently fall back to a different engine. Execution is gated below.
 KNOWN_PROVIDERS = frozenset(
     {
         DEFAULT_PROVIDER,
@@ -133,11 +133,9 @@ def _build_pipeline(provider: str, kb_base_dir: Optional[str], **kwargs: Any):
         return PageIndexPipeline(**kwargs)
 
     if provider == GRAPHRAG_PROVIDER:
-        from .pipelines.graphrag.pipeline import GraphRagPipeline
+        from .pipelines.graphrag.config import require_graphrag_enabled
 
-        if kb_base_dir is not None:
-            kwargs.setdefault("kb_base_dir", kb_base_dir)
-        return GraphRagPipeline(**kwargs)
+        require_graphrag_enabled()
 
     if provider == LIGHTRAG_PROVIDER:
         from .pipelines.lightrag.pipeline import LightRagPipeline
@@ -174,6 +172,10 @@ def get_pipeline(
 ):
     """Return a pipeline instance for ``name`` (cached when no custom kwargs)."""
     provider = normalize_provider_name(name)
+    if provider == GRAPHRAG_PROVIDER:
+        from .pipelines.graphrag.config import require_graphrag_enabled
+
+        require_graphrag_enabled()
 
     if kwargs:
         # Custom kwargs (e.g. an injected client/loader): build a fresh instance
@@ -194,15 +196,6 @@ def list_pipelines() -> List[Dict[str, Any]]:
         pageindex_ready = is_pageindex_configured()
     except Exception:
         pageindex_ready = False
-
-    try:
-        from .pipelines.graphrag import config as graphrag_config
-
-        graphrag_ready = graphrag_config.is_graphrag_available()
-        graphrag_modes = list(graphrag_config.SUPPORTED_MODES)
-        graphrag_default_mode = graphrag_config.DEFAULT_MODE
-    except Exception:
-        graphrag_ready, graphrag_modes, graphrag_default_mode = False, [], ""
 
     try:
         from .pipelines.lightrag import config as lightrag_config
@@ -238,15 +231,6 @@ def list_pipelines() -> List[Dict[str, Any]]:
             "description": "Hosted, vectorless engine: the chat agent reads documents through the PageIndex MCP tools. Requires an API key; PDF, Office, text and Markdown formats.",
             "configured": pageindex_ready,
             "requires_api_key": True,
-        },
-        {
-            "id": GRAPHRAG_PROVIDER,
-            "name": "GraphRAG",
-            "description": "Local knowledge-graph retrieval (global/local/drift/basic). Needs `pip install 'cognivoy[graphrag]'`; indexing is LLM-heavy.",
-            "configured": graphrag_ready,
-            "requires_api_key": False,
-            "modes": graphrag_modes,
-            "default_mode": graphrag_default_mode,
         },
         {
             "id": LIGHTRAG_PROVIDER,

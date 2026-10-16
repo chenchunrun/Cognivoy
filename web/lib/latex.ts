@@ -203,8 +203,12 @@ export function convertFlowFenceToMermaid(source: string): string | null {
   const nodeDefs: string[] = [];
   const edges: string[] = [];
 
+  // Mermaid uses quoted labels and decimal entities, not backslash escaping.
+  // Encode syntax characters in one pass so labels cannot add graph statements.
+  const quoteLabel = (label: string): string =>
+    `"${label.replace(/[\\#&"|\[\]{}()<>;]/g, (char) => `#${char.charCodeAt(0)};`)}"`;
   const renderNode = (id: string, type: string, label: string): string => {
-    const safeLabel = label.replace(/\|/g, "\\|");
+    const safeLabel = quoteLabel(label);
     switch (type) {
       case "start":
       case "end":
@@ -252,7 +256,7 @@ export function convertFlowFenceToMermaid(source: string): string | null {
       const branch = fromAnnotation?.split(",")[0]?.trim();
       const label =
         branch && !/^(left|right|top|bottom)$/i.test(branch)
-          ? `|${branch}|`
+          ? `|${quoteLabel(branch)}|`
           : "";
       edges.push(`  ${fromId} -->${label} ${toId}`);
     }

@@ -72,7 +72,7 @@ function extractFrom(content, rel) {
     let key;
     try {
       // Interpret escape sequences the way JS would.
-      key = JSON.parse(`"${raw.replace(/(?<!\\)'/g, "'").replace(/\\'/g, "'")}"`);
+      key = JSON.parse(`"${raw.replace(/\\'/g, "'")}"`);
     } catch {
       key = raw; // fall back to the raw literal
     }
@@ -102,7 +102,7 @@ function extractFrom(content, rel) {
     const raw = m[1] !== undefined ? m[1] : m[2];
     let key;
     try {
-      key = JSON.parse(`"${raw.replace(/(?<!\\)'/g, "'").replace(/\\'/g, "'")}"`);
+      key = JSON.parse(`"${raw.replace(/\\'/g, "'")}"`);
     } catch {
       key = raw;
     }

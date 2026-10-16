@@ -4,21 +4,38 @@ Core learning and chat do not require a local model server, Manim, or media-gene
 
 For knowledge bases without an embedding service, see [model-free keyword/BM25 retrieval](MODEL_FREE_RETRIEVAL.md). This avoids an Ollama dependency for text retrieval, but does not remove language-model, OCR, or media-provider requirements from features that use them.
 
+## GraphRAG
+
+**Temporarily disabled pending dependency security compatibility.** GraphRAG is
+not offered in the provider picker, and indexing/query execution is blocked even
+when GraphRAG is already installed. The `graphrag` extra is retained as an empty
+compatibility extra; installing it does not install or enable the engine.
+
+Existing GraphRAG knowledge-base metadata and indexes are preserved and are not
+silently treated as LlamaIndex indexes. Use a separate LlamaIndex, keyword/BM25,
+or LightRAG knowledge base for retrieval. Re-enabling GraphRAG requires a reviewed
+dependency set and code change; there is no runtime override.
+
 ## Math Animator
 
-Manim is a graphics renderer, not a local AI model. The existing remote language-model profile writes scenes; Manim renders them in the configured execution boundary. It does not require Ollama or model weights.
+**Temporarily disabled for security.** Model-generated Python must not execute
+in the application host process. Math Animator and Manim-backed visualization
+are unavailable until an isolated renderer with resource and filesystem
+boundaries is implemented. Installing Manim or its system dependencies does
+not enable rendering; there is no host-execution opt-in.
 
-Install the source extra into the application's virtual environment (never a global Python):
+SVG, Mermaid, Chart.js, and HTML visualization do not use this Manim execution
+path and remain available. The readiness endpoint reports `isolated-renderer`
+as missing. Manim acceptance checks remain blocked, not passed.
 
-```sh
-uv pip install --python .venv/bin/python --dry-run -r requirements/math-animator.txt
-uv pip install --python .venv/bin/python -r requirements/math-animator.txt
-.venv/bin/python -m scripts.verify_math_animator_runtime
-```
+## WeChat channel limitation
 
-The host/container also needs Cairo/Pango, FFmpeg/ffprobe, LaTeX and dvisvgm. On Debian/Ubuntu, image maintainers can provision `build-essential pkg-config libcairo2-dev libpango1.0-dev ffmpeg texlive-latex-extra texlive-fonts-extra texlive-science dvisvgm`. Consult the [Manim installation guide](https://docs.manim.community/en/stable/installation/uv.html) for the operating system. Cognivoy additionally needs FFmpeg command-line tools for generated-video review. System installation is an operator action; the app does not install packages at runtime.
-
-The default Docker image does not include this large optional toolchain. An animation-enabled image must add these system packages and `requirements/math-animator.txt` during its build, then run the smoke test **as the same non-root user that runs Cognivoy**, with a writable data directory. Passing `import manim` alone is not sufficient. The smoke test renders a real formula MP4 and extracts three non-empty review frames. Preserve its JSON result with the release evidence.
+The personal WeChat channel currently supports text only. Media upload and
+download are disabled because the upstream media protocol requires AES-ECB.
+The implementation no longer encrypts, decrypts, uploads, or downloads media,
+and never falls back to sending unencrypted bytes. Use the Web app or another
+supported channel for image, voice, video, and file attachments. Re-enabling
+media requires a separately reviewed secure transport, not a runtime flag.
 
 ## Hosted voice, image and video services
 

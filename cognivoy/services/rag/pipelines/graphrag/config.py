@@ -45,7 +45,7 @@ DEFAULT_MODE = "local"
 
 
 class GraphRagNotAvailableError(RuntimeError):
-    """Raised when the optional ``graphrag`` dependency is not installed."""
+    """Raised when the GraphRAG provider is disabled or unavailable."""
 
 
 class GraphRagNotConfiguredError(RuntimeError):
@@ -53,15 +53,16 @@ class GraphRagNotConfiguredError(RuntimeError):
 
 
 def is_graphrag_available() -> bool:
-    """True when the optional ``graphrag`` package can be imported.
+    """Disabled even when a pre-existing GraphRAG installation is present."""
+    return False
 
-    GraphRAG is heavy (LiteLLM, lancedb, graspologic, …) and ships as an opt-in
-    extra: ``pip install 'cognivoy[graphrag]'``. Until it is installed the
-    provider is hidden / blocked in the UI.
-    """
-    import importlib.util
 
-    return importlib.util.find_spec("graphrag") is not None
+def require_graphrag_enabled() -> None:
+    """Fail closed until a compatible, security-reviewed dependency set exists."""
+    raise GraphRagNotAvailableError(
+        "GraphRAG is temporarily disabled pending dependency security compatibility. "
+        "Use LlamaIndex, keyword/BM25, or LightRAG instead."
+    )
 
 
 def normalize_mode(mode: str | None) -> str:
