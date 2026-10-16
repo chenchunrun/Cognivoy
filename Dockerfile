@@ -20,7 +20,7 @@
 # Run on the build platform natively (not under QEMU emulation).
 # The output is platform-independent static assets (JS/HTML/CSS),
 # so there is no need to cross-compile this stage.
-FROM --platform=$BUILDPLATFORM node:22-slim AS frontend-builder
+FROM --platform=$BUILDPLATFORM node:25-slim AS frontend-builder
 
 WORKDIR /app/web
 
@@ -56,7 +56,7 @@ RUN npm run build
 # Provides the correctly-architected node binary for the final image.
 # Unlike frontend-builder (pinned to BUILDPLATFORM), this stage pulls
 # the node image matching each target platform (amd64 / arm64).
-FROM node:22-slim AS node-runtime
+FROM node:25-slim AS node-runtime
 
 # ============================================
 # Stage 2: Python Base with Dependencies
