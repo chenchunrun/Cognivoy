@@ -6,19 +6,15 @@ For knowledge bases without an embedding service, see [model-free keyword/BM25 r
 
 ## Math Animator
 
-Manim is a graphics renderer, not a local AI model. The existing remote language-model profile writes scenes; Manim renders them in the configured execution boundary. It does not require Ollama or model weights.
+**Temporarily disabled for security.** Model-generated Python must not execute
+in the application host process. Math Animator and Manim-backed visualization
+are unavailable until an isolated renderer with resource and filesystem
+boundaries is implemented. Installing Manim or its system dependencies does
+not enable rendering; there is no host-execution opt-in.
 
-Install the source extra into the application's virtual environment (never a global Python):
-
-```sh
-uv pip install --python .venv/bin/python --dry-run -r requirements/math-animator.txt
-uv pip install --python .venv/bin/python -r requirements/math-animator.txt
-.venv/bin/python -m scripts.verify_math_animator_runtime
-```
-
-The host/container also needs Cairo/Pango, FFmpeg/ffprobe, LaTeX and dvisvgm. On Debian/Ubuntu, image maintainers can provision `build-essential pkg-config libcairo2-dev libpango1.0-dev ffmpeg texlive-latex-extra texlive-fonts-extra texlive-science dvisvgm`. Consult the [Manim installation guide](https://docs.manim.community/en/stable/installation/uv.html) for the operating system. Cognivoy additionally needs FFmpeg command-line tools for generated-video review. System installation is an operator action; the app does not install packages at runtime.
-
-The default Docker image does not include this large optional toolchain. An animation-enabled image must add these system packages and `requirements/math-animator.txt` during its build, then run the smoke test **as the same non-root user that runs Cognivoy**, with a writable data directory. Passing `import manim` alone is not sufficient. The smoke test renders a real formula MP4 and extracts three non-empty review frames. Preserve its JSON result with the release evidence.
+SVG, Mermaid, Chart.js, and HTML visualization do not use this Manim execution
+path and remain available. The readiness endpoint reports `isolated-renderer`
+as missing. Manim acceptance checks remain blocked, not passed.
 
 ## Hosted voice, image and video services
 

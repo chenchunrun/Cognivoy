@@ -6,6 +6,7 @@ const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
 (async () => {
   const browser = await chromium.launch(executablePath ? { executablePath } : {});
   const page = await browser.newPage();
+  try {
   let savedCapability = "auto";
   let resetCount = 0;
   let restoredBackup = "";
@@ -176,6 +177,9 @@ const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
       await route.fulfill({
         contentType: "application/json",
         body: JSON.stringify({
+          // Admin settings include the catalog. Omitting it makes the access
+          // provider treat this fixture as an unassigned ordinary account.
+          catalog: { version: 1, services: {} },
           ui: {
             chat_response_timeout: 180,
             voice_autoplay: false,
@@ -316,8 +320,10 @@ const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
   await page.getByRole("button", { name: "Test" }).click();
   await page.getByText("Connection successful").waitFor();
 
-  await browser.close();
   console.log("PASS settings overview, recoverable reset, search defaults, SLO diagnostics, dependency topology, chat defaults, network policy, Agent resource policy, and admin MCP E2E");
+  } finally {
+    await browser.close();
+  }
 })().catch((error) => {
   console.error(error);
   process.exitCode = 1;
