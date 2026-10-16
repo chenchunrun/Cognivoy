@@ -61,8 +61,8 @@ export default function EmbeddingSettingsPage() {
         >
           {!profile ? <option value="">{t("Loading...")}</option> : null}
           <option value="keyword">{t("Keyword (no model)")}</option>
-          <option value="hybrid">{t("Hybrid (embedding required)")}</option>
-          <option value="vector">{t("Vector (embedding required)")}</option>
+          <option value="hybrid" disabled>{t("Hybrid (embedding required)")} — {t("Unavailable")}</option>
+          <option value="vector" disabled>{t("Vector (embedding required)")} — {t("Unavailable")}</option>
         </Select>
         <p className="text-xs text-muted-foreground">
           {t("Applies to LlamaIndex knowledge bases. Existing text chunks can be reused; original vector indexes are preserved. Scanned images need text extraction first.")}

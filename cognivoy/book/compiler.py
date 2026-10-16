@@ -22,8 +22,9 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
-import logging
 import time
+
+from cognivoy.logging.safe_logger import get_logger
 
 from .agents.page_planner import SectionArchitect
 from .blocks.base import BlockContext, get_block_registry
@@ -39,7 +40,7 @@ from .models import (
 from .storage import BookStorage, get_book_storage
 from .streaming import STAGE_BLOCK, STAGE_COMPILATION, STAGE_PAGE_PLAN, BookStream
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 @dataclass

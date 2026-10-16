@@ -55,6 +55,10 @@ jobs:
         run: uv export --locked --no-dev --no-emit-project --format requirements-txt --output-file /tmp/cognivoy-default-requirements.txt
       - name: Audit default locked dependency set
         run: pip-audit -r /tmp/cognivoy-default-requirements.txt --no-deps --disable-pip --progress-spinner off
+      - name: Export all supported optional dependencies
+        run: uv export --locked --all-extras --no-dev --no-emit-project --format requirements-txt --output-file /tmp/cognivoy-all-requirements.txt
+      - name: Audit all supported optional dependencies
+        run: pip-audit -r /tmp/cognivoy-all-requirements.txt --no-deps --disable-pip --progress-spinner off
       - name: Audit supported server dependency set
         run: >-
           pip-audit -r requirements/server.txt --progress-spinner off

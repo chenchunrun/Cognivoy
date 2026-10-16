@@ -7,14 +7,14 @@ from collections.abc import Callable
 from datetime import datetime
 from enum import Enum
 import json
-import logging
 from pathlib import Path
 
+from cognivoy.logging.safe_logger import get_logger
 from cognivoy.services.file_io import atomic_write_json
 
 # Use unified logging system
 
-_logger = logging.getLogger(__name__)
+_logger = get_logger(__name__)
 
 
 def _logger_instance():
@@ -207,7 +207,7 @@ class ProgressTracker:
                 logger.info(progress_msg)
         except Exception:
             # If unified logging fails unexpectedly, use stdlib logger as fallback.
-            fallback_logger = logging.getLogger("cognivoy.ProgressTracker")
+            fallback_logger = get_logger("cognivoy.ProgressTracker")
             prefix = f"[{self.task_id}]" if self.task_id else ""
             fallback_logger.warning(
                 "%s [ProgressTracker] %s (%s/%s)",

@@ -16,14 +16,14 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import hashlib
 import json
-import logging
 import sqlite3
 
+from cognivoy.logging.safe_logger import get_logger
 from cognivoy.services.memory.paths import Surface
 from cognivoy.services.memory.snapshot.entity import Entity
 from cognivoy.services.path_service import get_path_service
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 # ── Helpers ──────────────────────────────────────────────────────────

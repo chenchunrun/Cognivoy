@@ -6,19 +6,18 @@ WebSocket endpoint for lightweight chat with session management.
 REST endpoints for session operations.
 """
 
-import logging
-
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 
 from cognivoy.agents.chat import ChatAgent, SessionManager
 from cognivoy.api.errors import internal_error_payload
+from cognivoy.logging.safe_logger import get_logger
 from cognivoy.services.config import PROJECT_ROOT, load_config_with_main
 from cognivoy.services.llm.config import get_llm_config
 from cognivoy.services.settings.interface_settings import get_response_language
 
 config = load_config_with_main("main.yaml", PROJECT_ROOT)
 log_dir = config.get("paths", {}).get("user_log_dir") or config.get("logging", {}).get("log_dir")
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 router = APIRouter()
 

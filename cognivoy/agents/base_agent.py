@@ -13,12 +13,12 @@ from abc import ABC, abstractmethod
 import asyncio
 from contextlib import aclosing
 import inspect
-import logging
 import time
 from typing import Any, AsyncGenerator, Awaitable, Callable
 
 from cognivoy.config.settings import settings
 from cognivoy.logging import LLMStats
+from cognivoy.logging.safe_logger import get_logger
 from cognivoy.services.config import get_agent_params
 from cognivoy.services.llm import complete as llm_complete
 from cognivoy.services.llm import (
@@ -132,7 +132,7 @@ class BaseAgent(ABC):
 
         # Initialize logger
         logger_name = f"{module_name.capitalize()}.{agent_name}"
-        self.logger = logging.getLogger(f"cognivoy.{logger_name}")
+        self.logger = get_logger(f"cognivoy.{logger_name}")
 
         # Load prompts using unified PromptManager
         try:

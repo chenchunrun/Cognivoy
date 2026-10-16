@@ -1,5 +1,7 @@
 """External folder links must respect the authenticated user's workspace."""
 
+from pathlib import Path
+
 import pytest
 
 from cognivoy.knowledge.manager import KnowledgeBaseManager
@@ -34,6 +36,24 @@ def test_user_can_link_only_own_workspace(scoped_user, tmp_path, monkeypatch):
     link.symlink_to(outside, target_is_directory=True)
     with pytest.raises(ValueError, match="outside your workspace"):
         assert_path_allowed(str(link))
+
+
+@pytest.mark.parametrize("exists", [False, True])
+def test_rejected_folder_is_not_probed(scoped_user, tmp_path, monkeypatch, exists):
+    outside = tmp_path / "outside"
+    if exists:
+        outside.mkdir()
+
+    def forbidden_probe(path):
+        if path == outside:
+            pytest.fail("Out-of-scope folder was probed before authorization")
+        return False
+
+    with monkeypatch.context() as patch:
+        patch.setattr(Path, "exists", forbidden_probe)
+        patch.setattr(Path, "is_dir", forbidden_probe)
+        with pytest.raises(ValueError, match="outside your workspace"):
+            assert_path_allowed(str(outside))
 
 
 def test_legacy_folder_link_enforces_user_scope(scoped_user, tmp_path):

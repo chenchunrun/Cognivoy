@@ -15,7 +15,6 @@ Download sources map onto MinerU's own mechanisms:
 
 from __future__ import annotations
 
-import logging
 import os
 from pathlib import Path
 import shutil
@@ -24,7 +23,9 @@ import threading
 import time
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from cognivoy.logging.safe_logger import get_logger
+
+logger = get_logger(__name__)
 
 DOWNLOADER_NAME = "mineru-models-download"
 MODEL_TYPES = ("pipeline", "vlm", "all")

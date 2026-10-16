@@ -25,13 +25,13 @@ from __future__ import annotations
 
 import asyncio
 import html
-import logging
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel, Field, ValidationError
 
 from cognivoy.core.i18n import t
+from cognivoy.logging.safe_logger import get_logger
 from cognivoy.multi_user.paths import current_owner_id
 from cognivoy.services.mcp import MCPServerConfig, get_mcp_manager, load_mcp_config, oauth
 from cognivoy.services.mcp.catalog import (
@@ -55,7 +55,7 @@ from cognivoy.services.mcp.user_config import (
     save_user_server,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 router = APIRouter()
 

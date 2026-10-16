@@ -12,6 +12,7 @@ from pathlib import Path
 import shutil
 from typing import Any, Dict, List, Optional
 
+from cognivoy.logging.safe_logger import get_logger
 from cognivoy.runtime.home import get_runtime_data_root
 
 from .factory import DEFAULT_PROVIDER, get_pipeline, list_pipelines, normalize_provider_name
@@ -33,7 +34,7 @@ class RAGService:
         kb_base_dir: Optional[str] = None,
         provider: Optional[str] = None,
     ):
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_logger(__name__)
         if kb_base_dir is None:
             try:
                 from cognivoy.services.path_service import get_path_service

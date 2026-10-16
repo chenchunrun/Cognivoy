@@ -11,14 +11,14 @@ from __future__ import annotations
 
 from datetime import datetime
 import json
-import logging
 from pathlib import Path
 import threading
 from typing import Any
 
+from cognivoy.logging.safe_logger import get_logger
 from cognivoy.partners.helpers import safe_filename
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 _HISTORY_MAX_MESSAGES = 40
 _HISTORY_MAX_CHARS = 24_000

@@ -8,7 +8,6 @@ Provides direct tool execution for the Playground tester.
 
 import asyncio
 import json
-import logging
 import time
 from typing import Any, AsyncGenerator, Literal
 from uuid import uuid4
@@ -29,11 +28,12 @@ from cognivoy.logging import (
     bind_log_context,
     capture_process_logs,
 )
+from cognivoy.logging.safe_logger import get_logger
 from cognivoy.runtime.control_plane import ExecutionControlPlane, control_plane_scope
 from cognivoy.runtime.registry.capability_registry import get_capability_registry
 from cognivoy.runtime.registry.tool_registry import get_tool_registry
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 router = APIRouter()
 

@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import asyncio
 from html import escape
-import logging
 from pathlib import Path
 import re
 import time
@@ -34,10 +33,11 @@ from cognivoy.book.statistics import calculate_book_statistics
 from cognivoy.book.streaming import SOURCE as BOOK_SOURCE
 from cognivoy.core.stream import StreamEventType
 from cognivoy.core.stream_bus import StreamBus
+from cognivoy.logging.safe_logger import get_logger
 from cognivoy.multi_user.context import get_current_user
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def _book_internal_error(operation: str, exc: Exception) -> HTTPException:

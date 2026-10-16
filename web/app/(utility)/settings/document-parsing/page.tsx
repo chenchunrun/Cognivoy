@@ -51,7 +51,6 @@ interface DocumentParsingPayload {
 }
 
 const PIP_HINT: Record<string, string> = {
-  docling: "pip install cognivoy[parse-docling]",
   markitdown: "pip install cognivoy[parse-markitdown]",
   pymupdf4llm: "pip install cognivoy[parse-pymupdf4llm]",
 };
@@ -189,7 +188,7 @@ export default function DocumentParsingSettingsPage() {
               <button
                 key={engine.id}
                 type="button"
-                disabled={busy}
+                disabled={busy || engine.id === "docling"}
                 onClick={() =>
                   !active && void putDocumentParsing({ engine: engine.id })
                 }
@@ -209,7 +208,7 @@ export default function DocumentParsingSettingsPage() {
                       <Badge variant="primary">{t("Active")}</Badge>
                     )}
                     {!engine.available && (
-                      <Badge variant="outline">{t("Not installed")}</Badge>
+                      <Badge variant="outline">{engine.id === "docling" ? t("Unavailable") : t("Not installed")}</Badge>
                     )}
                   </div>
                   <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
@@ -541,11 +540,9 @@ function DoclingPanel({
   );
   if (!available) {
     return (
-      <NotInstalledSection
-        engineId="docling"
-        title={t("Docling")}
-        onInstalled={onInstalled}
-      />
+      <SettingSection title={t("Docling")} description={t("Unavailable")}>
+        <ReadinessNotice readiness={readiness} />
+      </SettingSection>
     );
   }
   return (

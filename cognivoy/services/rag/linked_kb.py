@@ -97,10 +97,6 @@ def assert_path_allowed(folder_path: str) -> Path:
     callers and administrators retain access to external folders.
     """
     folder = Path(folder_path).expanduser()
-    if not folder.exists():
-        raise ValueError(f"Folder does not exist: {folder}")
-    if not folder.is_dir():
-        raise ValueError(f"Not a directory: {folder}")
     resolved = folder.resolve()
 
     from cognivoy.multi_user.context import get_current_user_or_none
@@ -116,6 +112,11 @@ def assert_path_allowed(folder_path: str) -> Path:
     roots = allowed_link_roots()
     if roots and not any(_is_within(resolved, root) for root in roots):
         raise ValueError("This folder is outside the locations allowed for linking.")
+    # Do not disclose existence or file type outside the caller's authorized roots.
+    if not resolved.exists():
+        raise ValueError(f"Folder does not exist: {folder}")
+    if not resolved.is_dir():
+        raise ValueError(f"Not a directory: {folder}")
     assert_safe_folder_contents(resolved)
     return resolved
 

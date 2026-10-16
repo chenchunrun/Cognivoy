@@ -7,18 +7,18 @@ from __future__ import annotations
 import asyncio
 import base64
 import hashlib
-import logging
 from typing import Any
 import uuid
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field, field_validator
 
+from cognivoy.logging.safe_logger import get_logger
 from cognivoy.multi_user.context import get_current_user
 from cognivoy.services.session import get_session_store, get_sqlite_session_store
 from cognivoy.services.storage.attachment_store import get_attachment_store
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 router = APIRouter()
 

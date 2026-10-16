@@ -12,7 +12,6 @@ import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime
 import hashlib
-import logging
 from pathlib import Path
 import re
 import shutil
@@ -20,6 +19,7 @@ from typing import Any, Awaitable, Callable
 
 import yaml
 
+from cognivoy.logging.safe_logger import get_logger
 from cognivoy.partners.config.paths import (
     get_data_dir,
     get_partner_dir,
@@ -39,7 +39,7 @@ from cognivoy.services.partners.workspace import (
     write_soul,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 _RESERVED_NAMES = {"workspace", "media", "sessions", "_souls"}
 _HYPHEN_RUN_RE = re.compile(r"-+")

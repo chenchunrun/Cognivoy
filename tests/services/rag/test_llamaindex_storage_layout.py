@@ -24,10 +24,14 @@ async def test_incremental_add_migrates_matching_legacy_index_to_flat_version(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    from cognivoy.services.rag.pipelines.llamaindex import pipeline as pipeline_module
     from cognivoy.services.rag.pipelines.llamaindex import storage as storage_module
     from cognivoy.services.rag.pipelines.llamaindex.pipeline import LlamaIndexPipeline
 
-    # This fixture describes an existing vector index, not a new model-free KB.
+    # Offline legacy-storage coverage only: bypass runtime setup and progress
+    # cleanup. This fixture does not imply that local vector retrieval is enabled;
+    # test_disabled_local_engines covers the normal constructor's denial.
+    monkeypatch.setattr(pipeline_module, "set_progress_callback", lambda callback: None)
     monkeypatch.setenv("COGNIVOY_RAG_RETRIEVAL_PROFILE", "vector")
     sig = _signature()
     kb_dir = tmp_path / "kb"

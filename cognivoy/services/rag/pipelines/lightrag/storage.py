@@ -21,13 +21,13 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import json
-import logging
 from pathlib import Path
 from typing import Any
 
+from cognivoy.logging.safe_logger import get_logger
 from cognivoy.services.file_io import atomic_write_json
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 META_FILENAME = "meta.json"
 PROVIDER = "lightrag"

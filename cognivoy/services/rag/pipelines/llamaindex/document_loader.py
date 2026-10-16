@@ -13,12 +13,12 @@ from __future__ import annotations
 
 import base64
 from dataclasses import dataclass, field
-import logging
 import mimetypes
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterable
 from uuid import uuid4
 
+from cognivoy.logging.safe_logger import get_logger
 from cognivoy.services.embedding import get_embedding_client
 from cognivoy.services.llm.client import get_llm_client
 from cognivoy.services.rag.file_routing import FileTypeRouter
@@ -67,7 +67,7 @@ class LlamaIndexDocumentLoader:
     """Convert source files into LlamaIndex ``Document`` / ``ImageNode`` objects."""
 
     def __init__(self, logger=None) -> None:
-        self.logger = logger or logging.getLogger(__name__)
+        self.logger = logger or get_logger(__name__)
 
     async def load(self, file_paths: Iterable[str], *, include_images: bool = True) -> list[Any]:
         documents: list[Any] = []

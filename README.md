@@ -3,6 +3,10 @@
 
 # Cognivoy
 
+Local vector/hybrid retrieval and Docling parsing are temporarily unavailable.
+Keyword retrieval and saved knowledge-base data remain available; see
+[current engine availability](OPTIONAL_CAPABILITIES.md#local-engine-availability).
+
 ### 个人智能学习伙伴
 
 *Your agent-native learning journey.*
@@ -147,7 +151,8 @@ python -m pip install --upgrade pip
 
 ```bash
 pip install -e ".[dev]"             # tests/lint tools
-pip install -e ".[rag-llamaindex]"  # optional vector/hybrid retrieval; see SECURITY.md
+# Local vector/hybrid retrieval and Docling are temporarily unavailable.
+# Keyword retrieval is included; existing knowledge-base data is preserved.
 pip install -e ".[partners]"        # Partner IM channel SDKs + MCP client
 pip install -e ".[matrix]"          # Matrix channel without E2EE/libolm
 pip install -e ".[matrix-e2e]"      # Matrix E2EE; requires libolm

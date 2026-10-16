@@ -28,13 +28,13 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 import json
-import logging
 import os
 from pathlib import Path
 import shutil
 from typing import Any
 from uuid import uuid4
 
+from cognivoy.logging.safe_logger import get_logger
 from cognivoy.multi_user.paths import (
     ensure_scope_workspace,
     get_admin_path_service,
@@ -43,7 +43,7 @@ from cognivoy.multi_user.paths import (
 from cognivoy.services.partners.scope import partner_scope
 from cognivoy.services.path_service import PathService
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def _requester_path_service() -> PathService:

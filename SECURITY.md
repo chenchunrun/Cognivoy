@@ -55,14 +55,12 @@ supported parser dependency set. The lockfile no longer contains GraphRAG or
 LiteLLM. Existing environments must be recreated to remove old installations;
 the runtime guard is not a package uninstaller.
 
-The optional dependency lock now upgrades MCP, Banks, Docling, Transformers,
-and Virtualenv. These upgrades do not establish a clean audit of every extra.
-NLTK remains subject to the boundary documented below. Accelerate 1.14.0 also
-has an unpatched checkpoint-path advisory
-([GHSA-4j2p-28q2-5m79](https://github.com/advisories/GHSA-4j2p-28q2-5m79)).
-Do not load user-supplied or untrusted model checkpoints in optional local
-document-model integrations. This is a deployment restriction, not a patched
-dependency or a claim of complete third-party code isolation.
+Local LlamaIndex vector/hybrid retrieval and Docling parsing are temporarily
+disabled, including installation extras and runtime entry points. The standard
+lockfile no longer contains NLTK, Accelerate, LlamaIndex, or Docling. Keyword
+retrieval remains available and existing knowledge-base data is preserved.
+See [local engine availability](OPTIONAL_CAPABILITIES.md#local-engine-availability). Recreate
+existing environments to remove previously installed optional packages.
 
 The web production audit reports no findings, while development tooling retains
 the unpatched Braces advisory described in [the frontend review](SECURITY_FRONTEND_REVIEW.md).
@@ -101,12 +99,13 @@ Reviewed again on 2026-10-16: the
 [upstream advisory](https://github.com/nltk/nltk/security/advisories/GHSA-8mgp-746c-j5xp)
 still lists no patched version. The default full-app and CLI dependency sets
 no longer include LlamaIndex or NLTK, and the default server audit has no NLTK
-exception. The `rag-llamaindex` optional integration still carries this upstream
-risk; enabling it is **not a zero-vulnerability result**. GraphRAG is disabled.
+exception. The `rag-llamaindex` compatibility extra is empty, and local
+vector/hybrid retrieval is disabled even when old dependencies remain installed.
+GraphRAG is disabled.
 
 PyPI still lists 3.10.3 as the latest NLTK release. LlamaIndex core
 0.14.25 still requires `nltk>=3.9.3`; upgrading LlamaIndex alone does not
-remove this exception. GraphRAG and TextBlob have been removed from the
+remove this dependency. NLTK, GraphRAG and TextBlob have been removed from the
 current lockfile. Keyword document loading,
 indexing and historical JSON text-store reading do not import LlamaIndex.
 Use a fresh environment for a default-only installation: upgrading an existing
@@ -118,16 +117,15 @@ not call NLTK directly and does not expose those model import/export APIs. Treat
 NLTK model paths as untrusted nevertheless: do not add an NLTK model loader or
 trainer to a Web, tool, parser, sandbox, or knowledge-base path until a patched
 NLTK version is available or an explicit containment control and regression test
-are added. Remove this exception as soon as a patched version is available.
+are added.
 
 `tests/security/test_nltk_advisory_boundary.py` rejects direct NLTK imports and
 literal dynamic/plugin imports in product code. Keyword retrieval uses its own
 model-free tokenizer; it does not use NLTK model import/export or downloads.
 This guard protects the application integration boundary, not arbitrary Python
 programs or a third-party dependency's entire API. Do not treat NLTK `pathsec`
-as Cognivoy's code-execution sandbox. Audit optional installations separately;
-their raw audit can still report this advisory. Review this risk on every
-optional dependency update.
+as Cognivoy's code-execution sandbox. Audit existing installations separately;
+packages installed before this change may remain until the environment is recreated.
 
 The local `rag-lightrag` extra remains disabled because its RAG-Anything/MinerU
 dependency chain requires vulnerable Transformers and Gradio versions. Use the

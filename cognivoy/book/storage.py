@@ -23,19 +23,19 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime, timezone
 import json
-import logging
 from pathlib import Path
 import shutil
 import threading
 from typing import Any
 from uuid import uuid4
 
+from cognivoy.logging.safe_logger import get_logger
 from cognivoy.services.file_io import atomic_write_text as _atomic_write_text
 from cognivoy.services.path_service import get_path_service
 
 from .models import Book, BookInputs, ExplorationReport, Page, Progress, Spine
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 _stage_review_lock = threading.RLock()
 
 

@@ -15,7 +15,6 @@ import binascii
 import copy
 from datetime import datetime
 import json
-import logging
 from typing import Annotated, Any, AsyncGenerator, Literal
 from uuid import uuid4
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -26,6 +25,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_valida
 
 from cognivoy.api.errors import internal_http_error
 from cognivoy.core.i18n import t
+from cognivoy.logging.safe_logger import get_logger
 from cognivoy.partners.config.paths import get_partner_dir, get_partner_media_dir
 from cognivoy.partners.helpers import safe_filename
 from cognivoy.services.cron import get_cron_service
@@ -58,7 +58,7 @@ from cognivoy.services.partners.workspace import (
     write_soul,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter()
 
 

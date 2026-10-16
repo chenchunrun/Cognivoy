@@ -7,20 +7,20 @@ import argparse
 import asyncio
 from datetime import datetime
 import json
-import logging
 from pathlib import Path
 import shutil
 from typing import Optional
 
 from cognivoy.knowledge.naming import validate_knowledge_base_name
 from cognivoy.knowledge.progress_tracker import ProgressStage, ProgressTracker
+from cognivoy.logging.safe_logger import get_logger
 from cognivoy.services.config import resolve_llm_runtime_config
 from cognivoy.services.file_io import atomic_write_json
 from cognivoy.services.rag.factory import normalize_provider_name
 from cognivoy.services.rag.file_routing import FileTypeRouter
 from cognivoy.services.rag.service import RAGService
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class KnowledgeBaseInitializer:
