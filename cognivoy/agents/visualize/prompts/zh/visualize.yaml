@@ -1,0 +1,20 @@
+# Visualize capability status messages (Chinese)
+# Loaded by StatusI18n from the `status:` section.
+status:
+  analyzing: "正在分析可视化需求..."
+  render_type_detected: "渲染类型：{render_type} — {description}"
+  generating: "正在生成可视化代码..."
+  code_generated: "代码已生成。"
+  validation_passed: "已通过本地格式校验。"
+  analysis_timeout_fallback: "分析超时，正在按所选格式尝试生成简明图解。"
+  analysis_invalid_fallback: "分析结果格式异常，正在依据原始需求继续生成简明图解。"
+  analysis_failed: "可视化分析服务未能完成请求，请稍后重试。"
+  generation_retry: "首次尝试未生成有效图形，正在简化布局并重试一次。"
+  generation_failed: "可视化未生成成功，未将说明页或无效草稿标记为完成。请重试，或要求生成更简明的图解。"
+  generation_progress: "正在生成图形代码..."
+  manim_code_prepared: "Manim 代码已准备好。"
+  manim_rendering: "正在渲染 {mode}，质量={quality}。"
+  manim_retry: "重试 {attempt}：{error}"
+  manim_artifacts_one: "已准备 {count} 个产物。"
+  manim_artifacts_many: "已准备 {count} 个产物。"
+  llm_call_failed: "LLM 调用失败。"

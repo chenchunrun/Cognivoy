@@ -1,0 +1,182 @@
+# ============================================
+# Cognivoy Docker Compose Configuration
+# ============================================
+# This file provides orchestration for Cognivoy services
+#
+# Usage:
+#   Production:  python scripts/docker_compose.py up -d
+#   Development: python scripts/docker_compose.py -f docker-compose.yml -f docker-compose.dev.yml up
+#   Build only:  python scripts/docker_compose.py build
+#
+# Prerequisites:
+#   1. Runtime settings are stored in ./data/user/settings (created automatically)
+#   2. Configure model providers from the web Settings page or model_catalog.json
+#   3. Use scripts/docker_compose.py so port mappings are rendered from system.json
+#
+# Local LLM (LM Studio / Ollama / vLLM):
+#   Use "host.docker.internal" instead of "localhost" in provider base_url fields.
+#   Configure provider endpoints in data/user/settings/model_catalog.json or the UI.
+# ============================================
+
+services:
+  # ============================================
+  # PocketBase — optional auth + storage sidecar
+  # Set integrations.pocketbase_url=http://pocketbase:8090 to activate.
+  # Leave integrations.pocketbase_url blank to run without PocketBase (SQLite fallback).
+  # ============================================
+  pocketbase:
+    image: ghcr.io/muchobien/pocketbase:latest
+    container_name: pocketbase
+    restart: unless-stopped
+    ports:
+      - "${COGNIVOY_DOCKER_POCKETBASE_PORT:-8090}:8090"
+    volumes:
+      # The upstream pocketbase image's entrypoint uses absolute paths
+      # (no /pb/ prefix): --dir=/pb_data --publicDir=/pb_public
+      # --hooksDir=/pb_hooks. The previous example mounted at /pb/pb_data
+      # and crashed on first start with "mkdir /pb_data: read-only file
+      # system".
+      - ./data/pocketbase:/pb_data
+      - ./data/pocketbase/public:/pb_public
+      - ./data/pocketbase/hooks:/pb_hooks
+    networks:
+      - cognivoy-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8090/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ============================================
+  # All-in-One Cognivoy Service
+  # ============================================
+  cognivoy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: cognivoy
+    restart: unless-stopped
+    ports:
+      - "${COGNIVOY_DOCKER_BACKEND_PORT:-8001}:${COGNIVOY_DOCKER_BACKEND_PORT:-8001}"
+      - "${COGNIVOY_DOCKER_FRONTEND_PORT:-3782}:${COGNIVOY_DOCKER_FRONTEND_PORT:-3782}"
+
+    volumes:
+      # Everything Cognivoy persists lives under ./data — one tree to mount
+      # and back up: admin workspace + runtime settings (data/user), per-user
+      # workspaces (data/users), partners (data/partners), accounts/grants/
+      # audit (data/system), knowledge bases, memory.
+      # The sandbox-runner gets only the administrator's task workspace: never
+      # data/system or data/users, which hold auth state, provider API keys,
+      # per-owner secrets, chats, settings and knowledge bases.
+      - ./data:/app/data
+
+    environment:
+      # Route untrusted shell exec to the runner sidecar (SYSTEM isolation).
+      # When this is set, the main app NEVER runs untrusted code in its own
+      # process — see cognivoy/services/sandbox/config.py:build_backend().
+      # On bare-metal / macOS deployments where the runner is not started, leave
+      # this unset: the app degrades to bwrap (Linux, if installed) or, only when
+      # COGNIVOY_SANDBOX_ALLOW_SUBPROCESS=1, a restricted subprocess.
+      - COGNIVOY_SANDBOX_RUNNER_URL=http://sandbox-runner:8900
+      - COGNIVOY_SANDBOX_RUNNER_TOKEN=${COGNIVOY_SANDBOX_RUNNER_TOKEN:-}
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${COGNIVOY_DOCKER_BACKEND_PORT:-8001}/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    depends_on:
+      pocketbase:
+        condition: service_healthy
+      sandbox-runner:
+        condition: service_healthy
+
+    networks:
+      - cognivoy-network
+      - sandbox-network
+
+  # ============================================
+  # Sandbox Runner Sidecar
+  # ============================================
+  # Executes untrusted shell commands in an isolated, least-privileged
+  # container so the main app never has to. Rationale for the sidecar shape:
+  #   * the main `cognivoy` container keeps minimal privileges and does NOT
+  #     mount the docker socket or run untrusted code in its own process;
+  #   * a sandbox escape here lands in a stripped, unprivileged container with
+  #     no app secrets, not in the main app.
+  # Not exposed to the host: it is reachable only on the internal
+  # sandbox-network at http://sandbox-runner:8900 and /exec requires a token.
+  sandbox-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.runner
+    container_name: cognivoy-sandbox-runner
+    restart: unless-stopped
+    environment:
+      - RUNNER_AUTH_TOKEN=${COGNIVOY_SANDBOX_RUNNER_TOKEN:-}
+
+    # Share only the administrator task workspace at the SAME path as the main
+    # app. The shared sidecar provides process/host isolation but not a separate
+    # mount namespace per request, so ordinary accounts are denied exec until a
+    # backend with per-task isolation (for example bwrap) is active. Mounting the
+    # whole data/users tree here would let one account read every other account's
+    # chats and knowledge bases.
+    # data/system is never mounted here, which is why credentials that authorize
+    # a person (Codex OAuth tokens) live under data/system/user-secrets/<owner>
+    # instead of inside a user root — and why installed CLI apps live in a third
+    # place, data/cli-apps, rather than in either: the runner has to *execute*
+    # them, so data/system is out; it must not be able to *modify* them, so a
+    # workspace subtree is out too.
+    volumes:
+      - ./data/user/workspace:/app/data/user/workspace
+      # Installed CLI apps, READ-ONLY. This is the one directory the runner
+      # executes code from that it did not receive in a request, so it must not
+      # be writable here: an escaped command that could overwrite an app's entry
+      # point would run as that app in every later turn, for every account.
+      # Installing writes it from the main container instead (services/cli_apps).
+      - ./data/cli-apps:/app/data/cli-apps:ro
+
+    # No `ports:` — intentionally not published to the host.
+
+    # ----- Security hardening -----
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # Read-only root filesystem: the runner only needs to read its own code and
+    # write under the shared volume (and scratch space). Give it tmpfs for the
+    # paths shell tooling expects to be writable (/tmp, $HOME). If a workload
+    # needs more writable scratch, relax read_only rather than widening tmpfs.
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /home/runner
+    pids_limit: 256
+    mem_limit: 1g
+    # cgroup-enforced RSS cap is the authoritative memory backstop; the
+    # per-command RLIMIT_AS in server.py is a cheaper secondary guard.
+
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8900/health',timeout=3).status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+    networks:
+      - sandbox-network
+
+# ============================================
+# Networks
+# ============================================
+networks:
+  cognivoy-network:
+    driver: bridge
+  sandbox-network:
+    driver: bridge
+    internal: true

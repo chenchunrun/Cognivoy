@@ -1,0 +1,24 @@
+Independent Cognivoy derivative distribution
+Copyright 2026 contributors to this derivative distribution
+
+This distribution is based on DeepTutor, originally developed by the Data
+Intelligence Lab at The University of Hong Kong and published at:
+https://github.com/HKUDS/DeepTutor
+Copyright 2025 Data Intelligence Lab, The University of Hong Kong
+
+This independently maintained distribution contains substantial modifications
+and additions made in 2026,
+including the redesigned Web experience, expanded agent-native workflows,
+learning and content-management features, compatibility integrations,
+performance improvements, and stability and regression-test work.
+
+This distribution is not affiliated with, sponsored by, or endorsed by the
+Data Intelligence Lab, The University of Hong Kong, or HKUDS. Their names and
+marks are used only to identify the origin of the upstream work.
+
+The original work and the derivative modifications are licensed under the
+Apache License, Version 2.0. This NOTICE is for attribution and informational
+purposes only and does not modify the License.
+
+Third-party libraries and assets remain subject to their respective licenses
+and attribution notices.

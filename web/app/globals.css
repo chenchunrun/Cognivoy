@@ -1,0 +1,603 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Cognivoy design system — "Paper & Ink"
+ * Light: warm cream canvas, terracotta accent (Claude-inspired paper feel).
+ * Dark: warm near-black, softened terracotta.
+ */
+:root {
+  /* Offline-safe typography. Production builds must not fetch Google Fonts:
+   * source installs and air-gapped Docker deployments are first-class. */
+  --font-sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-serif: Iowan Old Style, Palatino Linotype, Book Antiqua, Georgia, serif;
+  --font-mono: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
+
+  --background: #faf9f5;
+  --foreground: #1f1c18;
+
+  --card: #ffffff;
+  --card-foreground: #1f1c18;
+
+  --popover: #ffffff;
+  --popover-foreground: #1f1c18;
+
+  /* WCAG AA on both the paper canvas and the primary-muted tint. */
+  --primary: #b14921;
+  --primary-foreground: #fdfbf7;
+  --primary-muted: #f7e8de;
+
+  --secondary: #f1ede3;
+  --secondary-foreground: #4a443b;
+
+  --muted: #f4f1ea;
+  --muted-foreground: #6b645a;
+
+  --accent: #f5ede2;
+  --accent-foreground: #9a4a24;
+
+  --destructive: #b3341e;
+  --destructive-foreground: #fdfbf7;
+
+  --success: #3f6d3f;
+  --success-foreground: #f4faf4;
+
+  --warning: #95620e;
+  --warning-foreground: #fdf8ec;
+
+  --border: #e8e2d6;
+  --input: #ded6c6;
+  --ring: #b14921;
+
+  --sidebar: #f4f1e9;
+  --sidebar-foreground: #403a31;
+  --sidebar-active: #ece5d6;
+
+  --overlay: rgba(31, 28, 24, 0.4);
+
+  /* Pre-mixed "muted" tints (≈10% semantic over card) and "border" blends
+   * (≈45% semantic over card). Solid colors on purpose: color tokens are
+   * var() full values, so Tailwind /NN opacity modifiers silently break —
+   * any faded semantic surface/border must use these instead. */
+  --success-muted: #edf2ed;
+  --success-border: #afc4af;
+  --warning-muted: #f6f1e8;
+  --warning-border: #d8c199;
+  --destructive-muted: #f7ebe9;
+  --destructive-border: #dda49a;
+  --primary-border: #e3b5a1;
+  --muted-subtle: #faf8f5;
+
+  /* Elevation shadows as vars so the dark theme can deepen them */
+  --shadow-hairline: 0 1px 2px rgba(31, 28, 24, 0.05);
+  --shadow-lift: 0 4px 16px rgba(31, 28, 24, 0.08);
+  --shadow-overlay: 0 12px 40px rgba(31, 28, 24, 0.14);
+
+  /* File-type icon colors (attachment chips, document pickers). Warm-shifted
+   * to sit well on the paper canvas; brightened in the dark theme. */
+  --file-pdf: #b5402c;
+  --file-doc: #4f6d96;
+  --file-sheet: #4d7c4d;
+  --file-slides: #b57722;
+  --file-image: #2f8577;
+  --file-code: #7a5fa8;
+  --file-data: #5f9154;
+  --file-markup: #4a87a0;
+  --file-style: #b45a8c;
+  --file-json: #a8761d;
+  --file-slate: #67727c;
+}
+
+.dark {
+  --background: #191713;
+  --foreground: #ede8de;
+
+  --card: #211e19;
+  --card-foreground: #ede8de;
+
+  --popover: #26221c;
+  --popover-foreground: #ede8de;
+
+  --primary: #da7a50;
+  --primary-foreground: #221510;
+  --primary-muted: #3a2a20;
+
+  --secondary: #2a261f;
+  --secondary-foreground: #c9c2b4;
+
+  --muted: #252119;
+  --muted-foreground: #a0998d;
+
+  --accent: #2e261c;
+  --accent-foreground: #e8a87f;
+
+  --destructive: #df765e;
+  --destructive-foreground: #221510;
+
+  --success: #7ba86f;
+  --success-foreground: #152012;
+
+  --warning: #d0a24d;
+  --warning-foreground: #221c0c;
+
+  --border: #37322a;
+  --input: #453e33;
+  --ring: #da7a50;
+
+  --sidebar: #1e1b16;
+  --sidebar-foreground: #c9c2b4;
+  --sidebar-active: #2b2620;
+
+  --overlay: rgba(0, 0, 0, 0.6);
+
+  /* Same roles as the light set, pre-mixed over the dark card surface */
+  --success-muted: #2e3125;
+  --success-border: #4a5c40;
+  --warning-muted: #393020;
+  --warning-border: #705930;
+  --destructive-muted: #392820;
+  --destructive-border: #703d2f;
+  --primary-border: #744732;
+  --muted-subtle: #232019;
+
+  /* Deeper shadows so elevated layers stay visible on near-black */
+  --shadow-hairline: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-lift: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-overlay: 0 12px 40px rgba(0, 0, 0, 0.5);
+
+  /* File-type icon colors, brightened for contrast on near-black */
+  --file-pdf: #e0705a;
+  --file-doc: #8aa6c9;
+  --file-sheet: #7ba86f;
+  --file-slides: #d9a55a;
+  --file-image: #5fb3a2;
+  --file-code: #ab8fd4;
+  --file-data: #92b981;
+  --file-markup: #7db1c7;
+  --file-style: #d78ab6;
+  --file-json: #d0a24d;
+  --file-slate: #9aa6b0;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans), system-ui, sans-serif;
+  }
+
+  ::selection {
+    background-color: var(--primary-muted);
+    color: var(--accent-foreground);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--input);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--muted-foreground);
+  }
+}
+
+@layer components {
+  /* Serif display heading — the signature paper feel */
+  .display {
+    font-family: var(--font-serif), Georgia, serif;
+    letter-spacing: -0.01em;
+  }
+
+  /* Hairline card used across settings / dashboard surfaces */
+  .surface {
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow-hairline);
+  }
+
+  /* Keyboard shortcut chip */
+  .kbd {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 11px;
+    padding: 1px 5px;
+    border: 1px solid var(--border);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    background: var(--muted);
+    color: var(--muted-foreground);
+  }
+}
+
+@layer utilities {
+  /* Keep long conversations cheap without changing their DOM or accessibility
+     tree. Off-screen turns retain an estimated block size and are laid out only
+     as they approach the scrollport. */
+  .chat-message-row {
+    content-visibility: auto;
+    contain-intrinsic-block-size: auto 180px;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Markdown prose (chat messages, documents) */
+.prose-cognivoy {
+  line-height: 1.7;
+  font-size: 15px;
+}
+.prose-cognivoy > * + * {
+  margin-top: 0.75em;
+}
+.prose-cognivoy h1,
+.prose-cognivoy h2,
+.prose-cognivoy h3,
+.prose-cognivoy h4 {
+  font-family: var(--font-serif), Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-top: 1.4em;
+  margin-bottom: 0.5em;
+}
+.prose-cognivoy h1 { font-size: 1.5em; }
+.prose-cognivoy h2 { font-size: 1.3em; }
+.prose-cognivoy h3 { font-size: 1.15em; }
+.prose-cognivoy h4 { font-size: 1em; }
+.prose-cognivoy a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--primary) 40%, transparent);
+}
+.prose-cognivoy a:hover {
+  text-decoration-color: var(--primary);
+}
+.prose-cognivoy code:not(pre code) {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.875em;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  padding: 0.1em 0.35em;
+  border-radius: 5px;
+}
+.prose-cognivoy pre {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.prose-cognivoy blockquote {
+  border-left: 3px solid var(--primary);
+  padding-left: 1em;
+  color: var(--muted-foreground);
+  font-style: italic;
+}
+.prose-cognivoy ul,
+.prose-cognivoy ol {
+  padding-left: 1.5em;
+}
+.prose-cognivoy ul { list-style: disc; }
+.prose-cognivoy ol { list-style: decimal; }
+.prose-cognivoy li + li {
+  margin-top: 0.3em;
+}
+.prose-cognivoy table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.925em;
+}
+.prose-cognivoy th,
+.prose-cognivoy td {
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  text-align: left;
+}
+.prose-cognivoy th {
+  background: var(--muted);
+  font-weight: 600;
+}
+.prose-cognivoy hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1.5em 0;
+}
+
+/* Long-form reading rhythm. Chat stays compact; books get a calmer measure,
+   stronger hierarchy, and Chinese-friendly line breaking. */
+.book-reading {
+  font-variant-numeric: proportional-nums;
+}
+.book-reading .prose-cognivoy {
+  font-size: 17px;
+  line-height: 1.88;
+  letter-spacing: 0.012em;
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+}
+.book-reading .prose-cognivoy > * + * {
+  margin-top: 1em;
+}
+.book-reading .prose-cognivoy p {
+  max-width: 72ch;
+}
+.book-reading .prose-cognivoy h1,
+.book-reading .prose-cognivoy h2,
+.book-reading .prose-cognivoy h3,
+.book-reading .prose-cognivoy h4 {
+  line-height: 1.35;
+  margin-top: 1.8em;
+  margin-bottom: 0.7em;
+  text-wrap: balance;
+}
+.book-reading .prose-cognivoy h2 { font-size: 1.42em; }
+.book-reading .prose-cognivoy h3 { font-size: 1.22em; }
+.book-reading .prose-cognivoy pre {
+  margin-block: 1.25em;
+  padding: 18px 20px;
+  font-size: 14px;
+  line-height: 1.72;
+}
+.book-reading .prose-cognivoy blockquote {
+  margin-block: 1.25em;
+  padding-block: 0.25em;
+}
+.book-reading .prose-cognivoy li + li {
+  margin-top: 0.5em;
+}
+
+.book-print-portal {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 18mm 17mm 20mm;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #181512 !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  body > * {
+    display: none !important;
+  }
+
+  body > .book-print-portal {
+    display: block !important;
+  }
+
+  .book-print-document {
+    font-family: var(--font-sans), "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    font-size: 10.8pt;
+    line-height: 1.72;
+    color: #181512;
+  }
+
+  .book-print-font-serif {
+    font-family: var(--font-serif), "Songti SC", "STSong", Georgia, serif;
+  }
+
+  .book-print-font-sans {
+    font-family: var(--font-sans), "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  }
+
+  .book-print-screen {
+    font-size: 11.6pt;
+    line-height: 1.82;
+  }
+
+  .book-print-screen .prose-cognivoy {
+    font-size: 11.6pt;
+    line-height: 1.82;
+  }
+
+  .book-print-running-header,
+  .book-print-running-footer {
+    position: fixed;
+    left: 0;
+    right: 0;
+    color: #776d63;
+    font-size: 7.5pt;
+    letter-spacing: 0.04em;
+    text-align: center;
+  }
+
+  .book-print-running-header {
+    top: -10mm;
+  }
+
+  .book-print-running-footer {
+    bottom: -12mm;
+  }
+
+  .book-print-cover {
+    min-height: 245mm;
+    display: grid;
+    grid-template-columns: 42% 1fr;
+    align-items: center;
+    gap: 18mm;
+    break-after: page;
+  }
+
+  .book-print-cover-image {
+    width: 100%;
+    max-height: 205mm;
+    object-fit: contain;
+    border: 0.5pt solid #d8c9ba;
+    border-radius: 3mm;
+  }
+
+  .book-print-cover-copy h1 {
+    margin: 8mm 0 5mm;
+    font-family: var(--font-serif), "Songti SC", "STSong", serif;
+    font-size: 28pt;
+    line-height: 1.28;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .book-print-cover-copy p {
+    color: #5f564c;
+    font-size: 11pt;
+    line-height: 1.8;
+  }
+
+  .book-print-meta {
+    margin-top: 12mm;
+    color: #7a6e62;
+    font-size: 9pt;
+  }
+
+  .book-print-kicker {
+    color: #a84b27;
+    font-size: 7.5pt;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+  }
+
+  .book-print-toc {
+    min-height: 245mm;
+    break-after: page;
+  }
+
+  .book-print-toc h2,
+  .book-print-chapter > header h2 {
+    font-family: var(--font-serif), "Songti SC", "STSong", serif;
+    font-weight: 600;
+  }
+
+  .book-print-toc h2 {
+    margin: 5mm 0 12mm;
+    font-size: 24pt;
+  }
+
+  .book-print-toc ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .book-print-toc li {
+    display: grid;
+    grid-template-columns: 12mm 1fr;
+    gap: 4mm;
+    padding: 4mm 0;
+    border-bottom: 0.5pt solid #ded7cf;
+    font-size: 11.5pt;
+  }
+
+  .book-print-toc li span:first-child {
+    color: #a84b27;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .book-print-chapter {
+    break-before: page;
+  }
+
+  .book-print-chapter > header {
+    padding: 9mm 0 8mm;
+    border-bottom: 1pt solid #c96942;
+    margin-bottom: 10mm;
+  }
+
+  .book-print-chapter > header h2 {
+    margin: 4mm 0 5mm;
+    font-size: 24pt;
+    line-height: 1.3;
+  }
+
+  .book-print-chapter > header ul {
+    margin: 0;
+    padding-left: 5mm;
+    color: #655b51;
+    font-size: 9.5pt;
+  }
+
+  .book-print-blocks {
+    display: flex;
+    flex-direction: column;
+    gap: 7mm;
+  }
+
+  .book-print-block {
+    break-inside: avoid-page;
+  }
+
+  .book-print-document .prose-cognivoy {
+    font-size: 10.8pt;
+    line-height: 1.72;
+    color: #181512;
+  }
+
+  .book-print-document .prose-cognivoy h1,
+  .book-print-document .prose-cognivoy h2,
+  .book-print-document .prose-cognivoy h3,
+  .book-print-document .prose-cognivoy h4,
+  .book-print-document .display {
+    font-family: var(--font-serif), "Songti SC", "STSong", serif;
+  }
+
+  .book-print-document .prose-cognivoy pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    border-color: #d8d2ca;
+    background: #f7f5f1;
+  }
+
+  .book-print-document iframe,
+  .book-print-document video,
+  .book-print-document [role="dialog"] {
+    display: none !important;
+  }
+
+  .book-print-document a {
+    color: inherit;
+    text-decoration-color: #a84b27;
+  }
+}
+
+/* Streaming caret for in-progress assistant messages */
+.stream-caret::after {
+  content: "▍";
+  color: var(--primary);
+  animation: caret-blink 1s steps(2) infinite;
+}
+@keyframes caret-blink {
+  50% { opacity: 0; }
+}
+@keyframes activity-content-ready {
+  from { opacity: 0.999; }
+  to { opacity: 1; }
+}

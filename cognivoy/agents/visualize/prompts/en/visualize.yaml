@@ -1,0 +1,20 @@
+# Visualize capability status messages (English)
+# Loaded by StatusI18n from the `status:` section.
+status:
+  analyzing: "Analyzing visualization requirements..."
+  render_type_detected: "Render type: {render_type} — {description}"
+  generating: "Generating visualization code..."
+  code_generated: "Code generated."
+  validation_passed: "Passed local format checks."
+  analysis_timeout_fallback: "Analysis timed out; trying a simple diagram in the requested format."
+  analysis_invalid_fallback: "The analysis reply was unusable; generating a simple diagram from your original request."
+  analysis_failed: "The visualization analysis service could not complete the request. Please retry."
+  generation_retry: "The first attempt did not produce a valid diagram; retrying once with a simpler layout."
+  generation_failed: "The visualization was not generated successfully. No placeholder has been marked as complete. Retry the request or use a simpler diagram."
+  generation_progress: "Generating diagram code..."
+  manim_code_prepared: "Manim code prepared."
+  manim_rendering: "Rendering {mode} with quality={quality}."
+  manim_retry: "Retry {attempt}: {error}"
+  manim_artifacts_one: "Prepared {count} artifact."
+  manim_artifacts_many: "Prepared {count} artifacts."
+  llm_call_failed: "LLM call failed."
