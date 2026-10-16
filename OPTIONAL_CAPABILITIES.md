@@ -4,6 +4,18 @@ Core learning and chat do not require a local model server, Manim, or media-gene
 
 For knowledge bases without an embedding service, see [model-free keyword/BM25 retrieval](MODEL_FREE_RETRIEVAL.md). This avoids an Ollama dependency for text retrieval, but does not remove language-model, OCR, or media-provider requirements from features that use them.
 
+## GraphRAG
+
+**Temporarily disabled pending dependency security compatibility.** GraphRAG is
+not offered in the provider picker, and indexing/query execution is blocked even
+when GraphRAG is already installed. The `graphrag` extra is retained as an empty
+compatibility extra; installing it does not install or enable the engine.
+
+Existing GraphRAG knowledge-base metadata and indexes are preserved and are not
+silently treated as LlamaIndex indexes. Use a separate LlamaIndex, keyword/BM25,
+or LightRAG knowledge base for retrieval. Re-enabling GraphRAG requires a reviewed
+dependency set and code change; there is no runtime override.
+
 ## Math Animator
 
 **Temporarily disabled for security.** Model-generated Python must not execute
@@ -15,6 +27,15 @@ not enable rendering; there is no host-execution opt-in.
 SVG, Mermaid, Chart.js, and HTML visualization do not use this Manim execution
 path and remain available. The readiness endpoint reports `isolated-renderer`
 as missing. Manim acceptance checks remain blocked, not passed.
+
+## WeChat channel limitation
+
+The personal WeChat channel currently supports text only. Media upload and
+download are disabled because the upstream media protocol requires AES-ECB.
+The implementation no longer encrypts, decrypts, uploads, or downloads media,
+and never falls back to sending unencrypted bytes. Use the Web app or another
+supported channel for image, voice, video, and file attachments. Re-enabling
+media requires a separately reviewed secure transport, not a runtime flag.
 
 ## Hosted voice, image and video services
 

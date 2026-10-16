@@ -172,6 +172,9 @@ def list_kb_versions(kb_dir: Path) -> list[dict[str, Any]]:
     root stores so older KBs stay queryable while new re-indexes use the simpler
     flat layout.
     """
+    from cognivoy.services.rag.linked_kb import assert_safe_folder_contents
+
+    assert_safe_folder_contents(kb_dir)
     versions: list[dict[str, Any]] = []
 
     for version_dir in _flat_version_dirs(kb_dir):

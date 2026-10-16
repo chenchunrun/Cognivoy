@@ -13,7 +13,7 @@ from .models import RenderedArtifact, RenderResult
 from .utils import slugify_filename
 
 YON_IMAGE_PATTERN = re.compile(
-    r"###\s*YON_IMAGE_(\d+)_START\s*###\s*(.*?)\s*###\s*YON_IMAGE_\1_END\s*###",
+    r"###\s*YON_IMAGE_(\d+)_START\s*###(.*?)###\s*YON_IMAGE_\1_END\s*###",
     re.DOTALL | re.IGNORECASE,
 )
 SCENE_PATTERN = re.compile(r"class\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*.*?Scene.*?\)\s*:")

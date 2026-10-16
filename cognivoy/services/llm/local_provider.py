@@ -351,7 +351,7 @@ async def fetch_models(
         if is_ollama:
             try:
                 ollama_url = base_url.replace("/v1", "") + "/api/tags"
-                async with session.get(ollama_url, headers=headers) as resp:
+                async with session.get(ollama_url, headers=headers, allow_redirects=False) as resp:
                     if resp.status == 200:
                         data = await resp.json()
                         if "models" in data:
@@ -366,7 +366,7 @@ async def fetch_models(
         # Try OpenAI-compatible /models
         try:
             models_url = f"{base_url}/models"
-            async with session.get(models_url, headers=headers) as resp:
+            async with session.get(models_url, headers=headers, allow_redirects=False) as resp:
                 if resp.status == 200:
                     data = await resp.json()
 

@@ -192,3 +192,31 @@ async def test_cloud_fetch_models(monkeypatch: MonkeyPatch) -> None:
     models = await cloud_provider.fetch_models("https://api.openai.com/v1")
 
     assert models == ["m1", "m2"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "provider_name,base_url",
+    [
+        ("cloud_provider", "https://gateway.example/v1"),
+        ("local_provider", "http://127.0.0.1:11434/v1"),
+        ("local_provider", "http://127.0.0.1:8000/v1"),
+    ],
+)
+async def test_model_discovery_does_not_follow_redirects(monkeypatch, provider_name, base_url):
+    from importlib import import_module
+
+    provider = import_module(f"cognivoy.services.llm.{provider_name}")
+    requests = []
+
+    class RecordingSession(_FakeSession):
+        def get(self, url, **kwargs):
+            requests.append((url, kwargs))
+            return self._response
+
+    monkeypatch.setattr(
+        provider.aiohttp, "ClientSession", lambda **kwargs: RecordingSession(_FakeResponse(302, {}))
+    )
+    assert await provider.fetch_models(base_url, api_key="test-only-key") == []
+    assert requests
+    assert all(kwargs.get("allow_redirects") is False for _, kwargs in requests)

@@ -181,7 +181,8 @@ async def _stream_add_record_with_summary(
         }
         yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
     except Exception as exc:
-        payload = {"type": "error", "detail": str(exc)}
+        internal_http_error(exc, operation="notebook.stream_summary")
+        payload = {"type": "error", "detail": "Notebook summary failed."}
         yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
 
 

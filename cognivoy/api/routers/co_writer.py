@@ -377,9 +377,12 @@ async def _stream_react_edit(request: ReactEditRequest) -> AsyncGenerator[str, N
         try:
             result_holder = await _run_react_edit(request, language=language, stream=bus)
         except HTTPException as exc:
-            error_holder["detail"] = str(exc.detail)
-        except Exception as exc:
-            error_holder["detail"] = str(exc)
+            error_holder["detail"] = (
+                "Co-writer editing failed." if exc.status_code >= 500 else str(exc.detail)
+            )
+        except Exception:
+            logger.exception("Co-writer editing failed", extra={"sink": "server"})
+            error_holder["detail"] = "Co-writer editing failed."
         finally:
             await bus.close()
 

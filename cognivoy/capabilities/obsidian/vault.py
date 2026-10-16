@@ -49,7 +49,9 @@ def _iter_markdown(root: Path):
     for path in sorted(root.rglob("*.md")):
         if _is_ignored(path.relative_to(root)):
             continue
-        yield path
+        # Bare-name lookup and search must apply the same canonical-path guard
+        # as explicit note paths before reading any candidate's contents.
+        yield _safe_join(root, path.relative_to(root).as_posix())
 
 
 def _safe_join(root: Path, rel: str) -> Path:

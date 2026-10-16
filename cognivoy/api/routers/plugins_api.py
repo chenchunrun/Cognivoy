@@ -7,10 +7,8 @@ Provides direct tool execution for the Playground tester.
 """
 
 import asyncio
-import contextlib
 import json
 import logging
-import re
 import time
 from typing import Any, AsyncGenerator, Literal
 from uuid import uuid4
@@ -30,7 +28,6 @@ from cognivoy.logging import (
     ProcessLogEvent,
     bind_log_context,
     capture_process_logs,
-    current_log_context,
 )
 from cognivoy.runtime.control_plane import ExecutionControlPlane, control_plane_scope
 from cognivoy.runtime.registry.capability_registry import get_capability_registry
@@ -39,7 +36,6 @@ from cognivoy.runtime.registry.tool_registry import get_tool_registry
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-ANSI_ESCAPE_RE = re.compile(r"\x1B\[[0-?]*[ -/]*[@-~]")
 
 
 def _playground_execution_enabled() -> bool:
@@ -331,67 +327,17 @@ def _queue_process_emit(
     loop: asyncio.AbstractEventLoop,
 ):
     def emit(event: ProcessLogEvent) -> None:
+        payload = event.to_dict()
+        if event.level in {"WARNING", "ERROR", "CRITICAL"}:
+            # Providers sometimes concatenate a traceback into the message
+            # itself. Keep the original server log, not its diagnostic text in SSE.
+            payload["message"] = "Execution reported a problem. Check the server log."
         loop.call_soon_threadsafe(
             queue.put_nowait,
-            {"kind": "process_log", "payload": event.to_dict()},
+            {"kind": "process_log", "payload": payload},
         )
 
     return emit
-
-
-class _QueueTextStream:
-    """Capture stdout/stderr lines as process-log events."""
-
-    def __init__(
-        self,
-        queue: asyncio.Queue[dict[str, Any]],
-        loop: asyncio.AbstractEventLoop,
-        stream,
-        *,
-        logger_name: str,
-    ):
-        self._queue = queue
-        self._loop = loop
-        self._stream = stream
-        self._logger_name = logger_name
-        self._buffer = ""
-
-    def write(self, text: str) -> int:
-        if self._stream is not None:
-            self._stream.write(text)
-            self._stream.flush()
-
-        self._buffer += text
-        while "\n" in self._buffer:
-            line, self._buffer = self._buffer.split("\n", 1)
-            self._emit_line(line.rstrip("\r"))
-        return len(text)
-
-    def flush(self):
-        if self._stream is not None:
-            self._stream.flush()
-        if self._buffer.strip():
-            self._emit_line(self._buffer)
-            self._buffer = ""
-
-    def isatty(self) -> bool:
-        return False
-
-    def _emit_line(self, line: str) -> None:
-        clean = ANSI_ESCAPE_RE.sub("", line).strip()
-        if not clean:
-            return
-        event = ProcessLogEvent(
-            level="INFO",
-            message=clean,
-            logger=self._logger_name,
-            timestamp=time.time(),
-            context=current_log_context(),
-        )
-        self._loop.call_soon_threadsafe(
-            self._queue.put_nowait,
-            {"kind": "process_log", "payload": event.to_dict()},
-        )
 
 
 async def _execute_stream(tool_name: str, params: dict[str, Any]) -> AsyncGenerator[str, None]:
@@ -412,12 +358,6 @@ async def _execute_stream(tool_name: str, params: dict[str, Any]) -> AsyncGenera
 
     event_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
     loop = asyncio.get_running_loop()
-    stdout_stream = _QueueTextStream(
-        event_queue, loop, stream=None, logger_name="cognivoy.playground.stdout"
-    )
-    stderr_stream = _QueueTextStream(
-        event_queue, loop, stream=None, logger_name="cognivoy.playground.stderr"
-    )
 
     result_holder: dict[str, Any] = {}
     error_holder: dict[str, Any] = {}
@@ -426,24 +366,16 @@ async def _execute_stream(tool_name: str, params: dict[str, Any]) -> AsyncGenera
 
     async def _run():
         try:
-            import sys
-
             control_context = UnifiedContext(
                 session_id=f"playground-tool-{uuid4().hex}",
                 metadata={"turn_id": task_id},
             )
             control_plane = ExecutionControlPlane.from_context(control_context)
 
-            stdout_stream._stream = sys.stdout
-            stderr_stream._stream = sys.stderr
             with bind_log_context(task_id=task_id, capability="playground", sink="ui"):
                 with capture_process_logs(_queue_process_emit(event_queue, loop), task_id=task_id):
-                    with (
-                        contextlib.redirect_stdout(stdout_stream),
-                        contextlib.redirect_stderr(stderr_stream),
-                    ):
-                        with control_plane_scope(control_plane):
-                            result = await registry.execute(tool_name, **params)
+                    with control_plane_scope(control_plane):
+                        result = await registry.execute(tool_name, **params)
             result_holder["data"] = {
                 "success": result.success,
                 "content": result.content,
@@ -465,8 +397,6 @@ async def _execute_stream(tool_name: str, params: dict[str, Any]) -> AsyncGenera
                 error_holder["trace_id"],
             )
         finally:
-            stdout_stream.flush()
-            stderr_stream.flush()
             done.set()
 
     task = asyncio.create_task(_run())
@@ -537,7 +467,7 @@ async def _execute_capability_stream(
                 "error",
                 _playground_error(
                     "partner_unavailable",
-                    str(exc.detail),
+                    "Partner is unavailable." if exc.status_code >= 500 else str(exc.detail),
                     retryable=exc.status_code >= 500,
                     details={"status_code": exc.status_code, "partner_id": partner_id},
                 ),
@@ -592,12 +522,6 @@ async def _execute_capability_stream(
 
     event_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
     loop = asyncio.get_running_loop()
-    stdout_stream = _QueueTextStream(
-        event_queue, loop, stream=None, logger_name="cognivoy.playground.stdout"
-    )
-    stderr_stream = _QueueTextStream(
-        event_queue, loop, stream=None, logger_name="cognivoy.playground.stderr"
-    )
 
     final_result: dict[str, Any] | None = None
     error_holder: dict[str, Any] = {}
@@ -607,25 +531,17 @@ async def _execute_capability_stream(
     async def _run():
         nonlocal final_result
         try:
-            import sys
-
-            stdout_stream._stream = sys.stdout
-            stderr_stream._stream = sys.stderr
             with bind_log_context(
                 task_id=task_id,
                 capability=capability_name,
                 sink="ui",
             ):
                 with capture_process_logs(_queue_process_emit(event_queue, loop), task_id=task_id):
-                    with (
-                        contextlib.redirect_stdout(stdout_stream),
-                        contextlib.redirect_stderr(stderr_stream),
-                    ):
-                        async for event in orch.handle(ctx):
-                            if event.type.value == "result":
-                                final_result = dict(event.metadata)
-                                continue
-                            await event_queue.put({"kind": "stream", "payload": event.to_dict()})
+                    async for event in orch.handle(ctx):
+                        if event.type.value == "result":
+                            final_result = dict(event.metadata)
+                            continue
+                        await event_queue.put({"kind": "stream", "payload": event.to_dict()})
         except Exception as exc:
             error_holder.update(
                 _playground_error(
@@ -641,8 +557,6 @@ async def _execute_capability_stream(
                 error_holder["trace_id"],
             )
         finally:
-            stdout_stream.flush()
-            stderr_stream.flush()
             done.set()
 
     task = asyncio.create_task(_run())

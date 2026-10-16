@@ -327,6 +327,10 @@ class FileTypeRouter:
         if not root.exists() or not root.is_dir():
             return []
 
+        from cognivoy.services.rag.linked_kb import assert_safe_folder_contents
+
+        assert_safe_folder_contents(root)
+
         paths = root.rglob("*") if recursive else root.iterdir()
         return sorted(
             (path for path in paths if path.is_file() and cls.has_supported_extension(path)),

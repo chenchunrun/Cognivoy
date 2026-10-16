@@ -43,11 +43,7 @@ class GraphRagPipeline:
     # ----- helpers --------------------------------------------------------
 
     def _ensure_available(self) -> None:
-        if not gr_config.is_graphrag_available():
-            raise gr_config.GraphRagNotAvailableError(
-                "GraphRAG is not installed. Install it with "
-                "`pip install 'cognivoy[graphrag]'` to use GraphRAG knowledge bases."
-            )
+        gr_config.require_graphrag_enabled()
 
     def _resolve_mode(self, kb_name: str, kwargs: dict[str, Any]) -> str:
         from ..modes import resolve_kb_mode

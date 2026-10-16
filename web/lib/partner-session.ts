@@ -10,7 +10,9 @@ function storageKey(partnerId: string): string {
 }
 
 export function freshPartnerSessionKey(): string {
-  return `web-${Math.random().toString(36).slice(2, 10)}`;
+  const bytes = new Uint8Array(16);
+  globalThis.crypto.getRandomValues(bytes);
+  return `web-${Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
 }
 
 export function loadPartnerSessionKey(partnerId: string): string {

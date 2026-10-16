@@ -126,6 +126,9 @@ def iter_kb_documents(root: Path) -> Iterator[Path]:
     too. The ``GET /knowledge/{kb}/files`` endpoint is a different thing — a
     directory browser that also reports folders, for the KB file-manager UI.
     """
+    from cognivoy.services.rag.linked_kb import assert_safe_folder_contents
+
+    assert_safe_folder_contents(root)
     if not root.is_dir():
         return
     for dirpath, dirnames, filenames in os.walk(root):

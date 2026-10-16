@@ -176,18 +176,17 @@ def test_rag_providers_lists_llamaindex_and_pageindex(monkeypatch) -> None:
     assert set(by_id) == {
         "llamaindex",
         "pageindex",
-        "graphrag",
         "lightrag",
         "lightrag-server",
         "ima",
     }
-    # LlamaIndex works out of the box; PageIndex needs an API key; GraphRAG and
-    # LightRAG are optional local engines (no API key, configured = installed).
+    # PageIndex needs an API key; LightRAG is an optional local engine.
+    # GraphRAG is temporarily disabled and is not advertised.
     assert by_id["llamaindex"]["requires_api_key"] is False
     assert by_id["llamaindex"]["ready"] is False
     assert by_id["llamaindex"]["preflight"]["checks"][0]["key"] == "embedding"
     assert by_id["pageindex"]["requires_api_key"] is True
-    assert by_id["graphrag"]["requires_api_key"] is False
+    assert "graphrag" not in by_id
     assert by_id["lightrag"]["requires_api_key"] is False
     # LightRAG Server is a thin HTTP client: always available, no API key gate
     # (the per-KB endpoint is configured at connect time).
@@ -1682,6 +1681,11 @@ def test_update_config_coerces_legacy_provider_to_llamaindex() -> None:
     app = _build_app()
 
     with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            knowledge_router_module,
+            "_writable_kb",
+            lambda name: (None, name, Path("/nonexistent-test-kbs")),
+        )
         monkeypatch.setattr(config_module, "get_kb_config_service", lambda: fake_service)
         with TestClient(app) as client:
             response = client.put(
@@ -1711,6 +1715,11 @@ def test_update_config_preserves_known_provider() -> None:
     app = _build_app()
 
     with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            knowledge_router_module,
+            "_writable_kb",
+            lambda name: (None, name, Path("/nonexistent-test-kbs")),
+        )
         monkeypatch.setattr(config_module, "get_kb_config_service", lambda: fake_service)
         with TestClient(app) as client:
             response = client.put(
@@ -1743,6 +1752,9 @@ def test_update_config_rejects_provider_change_for_ready_index(monkeypatch, tmp_
 
     monkeypatch.setattr(config_module, "get_kb_config_service", lambda: fake_service)
     monkeypatch.setattr(knowledge_router_module, "_current_kb_base_dir", lambda: tmp_path)
+    monkeypatch.setattr(
+        knowledge_router_module, "_writable_kb", lambda name: (None, name, tmp_path)
+    )
 
     with TestClient(_build_app()) as client:
         response = client.put(
@@ -1762,7 +1774,7 @@ def test_rag_providers_marks_linkable() -> None:
     # Self-contained local indexes can be linked in place; PageIndex (cloud) and
     # LightRAG Server (remote, no local folder) can't.
     assert by_id["llamaindex"]["linkable"] is True
-    assert by_id["graphrag"]["linkable"] is True
+    assert "graphrag" not in by_id
     assert by_id["lightrag"]["linkable"] is True
     assert by_id["pageindex"]["linkable"] is False
     assert by_id["lightrag-server"]["linkable"] is False

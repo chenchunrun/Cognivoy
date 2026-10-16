@@ -127,7 +127,8 @@ def _extract_json_object(raw: str) -> str | None:
     """Strip code fences and pull out the first top-level JSON object."""
     text = raw.strip()
     text = re.sub(r"^```[a-zA-Z]*\s*", "", text)
-    text = re.sub(r"\s*```$", "", text)
+    if text.endswith("```"):
+        text = text[:-3].rstrip()
     start = text.find("{")
     end = text.rfind("}")
     if start == -1 or end == -1 or end <= start:

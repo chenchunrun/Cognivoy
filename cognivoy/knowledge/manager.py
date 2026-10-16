@@ -27,6 +27,7 @@ from cognivoy.knowledge.kb_types import (
     is_connected_kb,
 )
 from cognivoy.knowledge.manifest import iter_kb_documents
+from cognivoy.knowledge.naming import validate_knowledge_base_name
 from cognivoy.services.file_io import atomic_write_json
 from cognivoy.services.rag.factory import (
     DEFAULT_PROVIDER,
@@ -727,6 +728,7 @@ class KnowledgeBaseManager:
 
     def register_knowledge_base(self, name: str, description: str = "", set_default: bool = False):
         """Register a knowledge base"""
+        name = validate_knowledge_base_name(name)
         kb_dir = self.base_dir / name
         if not kb_dir.exists():
             raise ValueError(f"Knowledge base directory does not exist: {kb_dir}")
@@ -750,7 +752,7 @@ class KnowledgeBaseManager:
         user's existing vault directory, which the Obsidian capability reads
         live. Raises ``ValueError`` on a missing/invalid path or a name clash.
         """
-        name = (name or "").strip()
+        name = validate_knowledge_base_name(name)
         if not name:
             raise ValueError("Knowledge base name is required.")
         vault = Path(vault_path).expanduser()
@@ -795,7 +797,7 @@ class KnowledgeBaseManager:
         folder with the probe helper first; this only guards basic invariants.
         Raises ``ValueError`` on a missing/invalid path or a name clash.
         """
-        name = (name or "").strip()
+        name = validate_knowledge_base_name(name)
         if not name:
             raise ValueError("Knowledge base name is required.")
         provider = normalize_provider_name(provider)
@@ -849,7 +851,7 @@ class KnowledgeBaseManager:
         capability drives the live agent; there is nothing on disk to retrieve or
         reconcile. Raises ``ValueError`` on a missing name/kind or a name clash.
         """
-        name = (name or "").strip()
+        name = validate_knowledge_base_name(name)
         agent_kind = (agent_kind or "").strip()
         partner_id = (partner_id or "").strip()
         agent_profile = (agent_profile or "").strip()
@@ -905,7 +907,7 @@ class KnowledgeBaseManager:
         guards basic invariants. Raises ``ValueError`` on a missing name/URL or a
         name clash.
         """
-        name = (name or "").strip()
+        name = validate_knowledge_base_name(name)
         server_url = (server_url or "").strip().rstrip("/")
         if not name:
             raise ValueError("Knowledge base name is required.")
@@ -955,7 +957,7 @@ class KnowledgeBaseManager:
         with the probe helper first; this only guards basic invariants. Raises
         ``ValueError`` on a missing field or a name clash.
         """
-        name = (name or "").strip()
+        name = validate_knowledge_base_name(name)
         client_id = (client_id or "").strip()
         api_key = (api_key or "").strip()
         knowledge_base_id = (knowledge_base_id or "").strip()
@@ -1579,13 +1581,9 @@ class KnowledgeBaseManager:
         if kb_name not in self.list_knowledge_bases():
             raise ValueError(f"Knowledge base not found: {kb_name}")
 
-        # Normalize path (cross-platform: handles ~, relative paths, etc.)
-        folder = Path(folder_path).expanduser().resolve()
+        from cognivoy.services.rag.linked_kb import assert_path_allowed
 
-        if not folder.exists():
-            raise ValueError(f"Folder does not exist: {folder}")
-        if not folder.is_dir():
-            raise ValueError(f"Path is not a directory: {folder}")
+        folder = assert_path_allowed(folder_path)
 
         files = FileTypeRouter.collect_supported_files(folder, recursive=True)
 
@@ -1743,7 +1741,11 @@ class KnowledgeBaseManager:
         if not folder_info:
             raise ValueError(f"Linked folder not found: {folder_id}")
 
-        folder_path = Path(folder_info["path"]).expanduser().resolve()
+        from cognivoy.services.rag.linked_kb import assert_path_allowed
+
+        # Recheck persisted pointers: old registrations and replaced symlinks
+        # must not let a sync read another user's files.
+        folder_path = assert_path_allowed(folder_info["path"])
         last_sync = folder_info.get("last_sync")
         synced_files = folder_info.get("synced_files", {})
 

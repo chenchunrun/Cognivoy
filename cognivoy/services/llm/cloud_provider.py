@@ -900,7 +900,9 @@ async def fetch_models(
     ) as session:
         try:
             url = f"{base_url}/models"
-            async with session.get(url, headers=headers) as resp:
+            # Discovery may target an administrator-configured private gateway,
+            # but must not follow it to a different resource with credentials.
+            async with session.get(url, headers=headers, allow_redirects=False) as resp:
                 if resp.status == 200:
                     payload = await resp.json()
                     if isinstance(payload, Mapping):

@@ -17,7 +17,12 @@ import logging
 from pathlib import Path
 from typing import Any, TypeVar
 
-from .config import DEFAULT_MODE, normalize_mode, query_config_from_settings
+from .config import (
+    DEFAULT_MODE,
+    normalize_mode,
+    query_config_from_settings,
+    require_graphrag_enabled,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +51,7 @@ _T = TypeVar("_T")
 
 
 def _load_config(root_dir: Path):
+    require_graphrag_enabled()
     from graphrag.config.load_config import load_config
 
     return load_config(root_dir=Path(root_dir))
@@ -87,6 +93,7 @@ async def build(root_dir: Path, *, is_update: bool = False) -> None:
     Raises on any failed workflow so the caller can surface an error and clean
     up the (incomplete) version directory.
     """
+    require_graphrag_enabled()
     from cognivoy.services.process_isolation import (
         current_user_context_payload,
         run_in_killable_process,
@@ -103,6 +110,7 @@ async def build(root_dir: Path, *, is_update: bool = False) -> None:
 
 
 async def _build_impl(root_dir: Path, *, is_update: bool) -> None:
+    require_graphrag_enabled()
     from graphrag.api import build_index
     from graphrag.config.enums import IndexingMethod
 
@@ -143,6 +151,7 @@ async def search(root_dir: Path, query: str, mode: str | None = None) -> tuple[s
     ``context_data`` is normalised to a dict of record lists
     (reports/entities/relationships/claims/sources) via GraphRAG's own helper.
     """
+    require_graphrag_enabled()
     from cognivoy.services.config.network_policy import get_outbound_network_policy
     from cognivoy.services.process_isolation import (
         current_user_context_payload,
@@ -159,6 +168,7 @@ async def search(root_dir: Path, query: str, mode: str | None = None) -> tuple[s
 
 
 async def _search_impl(root_dir: Path, query: str, mode: str | None) -> tuple[str, dict]:
+    require_graphrag_enabled()
     import graphrag.api as api
     from graphrag.utils.api import reformat_context_data
 

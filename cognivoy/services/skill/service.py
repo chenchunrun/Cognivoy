@@ -60,7 +60,7 @@ import yaml
 
 from cognivoy.services.path_service import get_path_service
 
-_FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n?", re.DOTALL)
+_FRONTMATTER_RE = re.compile(r"^---[^\S\r\n]*\r?\n(.*?)\n---[^\S\r\n]*\r?\n?", re.DOTALL)
 _NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
 _TAG_RE = re.compile(r"^[a-z0-9][a-z0-9\- _]{0,31}$")
 _DEFAULT_TAGS: tuple[str, ...] = ("style", "tool")

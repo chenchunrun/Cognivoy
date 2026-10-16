@@ -30,12 +30,14 @@ CHECK = f"{GREEN}✓{RESET}"
 CROSS = f"{RED}✗{RESET}"
 
 
-def _mask(secret: str | None, visible: int = 8) -> str:
-    if not secret:
-        return "(empty)"
-    if len(secret) <= visible:
-        return secret
-    return secret[:visible] + "…"
+def _mask(secret: str | None) -> str:
+    return "(configured)" if secret else "(empty)"
+
+
+def test_mask_never_reveals_short_or_long_credentials():
+    assert _mask("short") == "(configured)"
+    assert _mask("long-sensitive-credential") == "(configured)"
+    assert _mask("") == "(empty)"
 
 
 async def run_test(

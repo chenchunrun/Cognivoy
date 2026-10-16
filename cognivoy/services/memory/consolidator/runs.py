@@ -311,7 +311,7 @@ class RunManager:
             await self._emit(run, {"stage": "cancelled"})
         except Exception as exc:  # noqa: BLE001
             run.status = "error"
-            run.error = str(exc)
+            run.error = "Memory consolidation failed. Check the server log."
             logger.warning(
                 "consolidator run failed (id=%s layer=%s key=%s mode=%s): %s",
                 run.id,
@@ -320,8 +320,9 @@ class RunManager:
                 run.mode,
                 exc,
                 exc_info=True,
+                extra={"sink": "server"},
             )
-            await self._emit(run, {"stage": "error", "message": str(exc)})
+            await self._emit(run, {"stage": "error", "message": run.error})
         finally:
             run.ended_at = _now_iso()
             await self._emit(run, {"stage": "run_ended", "status": run.status})

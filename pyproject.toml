@@ -26,7 +26,7 @@ classifiers = [
 # Capped below 3.14 on purpose (issue #664): on 3.14 pip can't find wheels for
 # some compiled base deps (e.g. faiss-cpu) and silently backtracks into a
 # doomed source build that dies with "subprocess-exited-with-error". The heavy
-# RAG extras (graphrag, rag-lightrag) already carry a `python_version < '3.14'`
+# Active heavy RAG extras (rag-lightrag) carry a `python_version < '3.14'`
 # marker for the same reason; capping here makes pip refuse 3.14 with a
 # readable "Requires a different Python" message instead of a build failure.
 requires-python = ">=3.11,<3.14"
@@ -155,7 +155,7 @@ server = [
 # IM platform SDKs and the MCP client used for deferred tools.
 partners = [
     "cognivoy[server]",
-    "mcp>=1.26.0,<2.0.0",
+    "mcp>=1.30.0,<2.0.0",
     "python-telegram-bot[socks]>=22.6,<23.0",
     "wecom-aibot-sdk>=1.0.8,<2.0.0",
     "lark-oapi>=1.5.0,<2.0.0",
@@ -185,7 +185,7 @@ partners = [
 # not a pip dependency. Engines import lazily, so these stay opt-in and an
 # absent engine simply reports unavailable in Settings → Document Parsing.
 parse-markitdown = ["markitdown[pdf,docx,pptx,xlsx]>=0.0.1a2"]
-parse-docling = ["docling>=2.0.0", "transformers>=5.5.0"]
+parse-docling = ["docling>=2.132.0", "transformers>=5.10.0"]
 # PyMuPDF4LLM rides on PyMuPDF (already a core dep); the extra adds only the
 # thin Markdown layer, so it is the lightest image-capable engine. Pinned to the
 # pre-1.0 line on purpose: 1.x defaults to an onnxruntime layout-AI path that
@@ -219,18 +219,10 @@ matrix-e2e = [
 # System prerequisites (installed outside pip): LaTeX, pkg-config, cairo, cmake, ffmpeg.
 math-animator = ["manim>=0.19.0"]
 
-# GraphRAG knowledge-base engine (microsoft/graphrag). Optional, heavy
-# (LiteLLM + lancedb + graspologic) and kept out of `all` so it stays a
-# deliberate opt-in. The pipeline imports lazily and the adapter targets the
-# 3.x API (see services/rag/pipelines/graphrag/engine.py). Every graphrag 3.x
-# release is capped at python <3.14; the `python_version` marker mirrors that
-# so on 3.14+ the extra resolves to a no-op instead of an unsatisfiable hard
-# dep — otherwise pip backtracks cognivoy to the last extra-free version
-# (1.4.5) and silently downgrades. Floor is 3.0.1 (3.0.0/3.0.3 were yanked).
-graphrag = [
-    "graphrag>=3.0.1,<4.0.0; python_version < '3.14'",
-    "pyarrow>=23.0.1; python_version < '3.14'",
-]
+# Temporarily disabled: the compatible GraphRAG release pins vulnerable
+# LiteLLM; patched releases conflict with the supported parser dependencies.
+# Keep the empty extra for installer compatibility, not as an enable switch.
+graphrag = []
 
 # The former local RAG-Anything extra is intentionally empty until its MinerU
 # dependency accepts a Transformers release containing the upstream security

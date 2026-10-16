@@ -69,7 +69,7 @@ test("sidebar prioritizes the learner journey and nests expert tools", () => {
     'href: "/partners"',
     'href: "/space"',
   ]) {
-    assert.match(source, new RegExp(destination.replace(/["/]/g, "\\$&")));
+    assert.ok(source.includes(destination));
   }
   assert.match(source, /const MATERIAL_NAV/);
   assert.match(source, /const EXPERT_NAV/);
