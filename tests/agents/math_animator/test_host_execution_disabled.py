@@ -10,6 +10,17 @@ def test_readiness_blocks_host_execution():
 
 
 @pytest.mark.asyncio
+async def test_direct_image_entry_blocks_before_parsing(tmp_path):
+    renderer = object.__new__(ManimRenderService)
+    renderer.source_dir = tmp_path
+    with pytest.raises(RuntimeError, match="isolated"):
+        await renderer._render_image_blocks(
+            code="invalid code", quality="low", width=None, height=None, fps=None
+        )
+    assert list(tmp_path.iterdir()) == []
+
+
+@pytest.mark.asyncio
 async def test_render_rejects_before_writing_source(tmp_path):
     renderer = object.__new__(ManimRenderService)
     renderer.source_dir = tmp_path

@@ -121,47 +121,10 @@ class ManimRenderService:
         height: int | None,
         fps: int | None,
     ) -> list[RenderedArtifact]:
-        matches = list(YON_IMAGE_PATTERN.finditer(code))
-        if not matches:
-            raise ManimRenderError(
-                "Image mode requires code blocks wrapped in ### YON_IMAGE_n_START ### / END ###."
-            )
-
-        residual = YON_IMAGE_PATTERN.sub("", code).strip()
-        if residual:
-            raise ManimRenderError("Image mode code must only contain YON_IMAGE anchor blocks.")
-
-        artifacts: list[RenderedArtifact] = []
-        for idx, match in enumerate(matches, start=1):
-            block_code = match.group(2).strip()
-            block_path = self.source_dir / f"image_block_{idx:02d}.py"
-            block_path.write_text(block_code, encoding="utf-8")
-            scene_name = self._extract_scene_name(block_code)
-            await self._emit_progress(
-                f"Rendering image block {idx}/{len(matches)} with scene `{scene_name}`."
-            )
-            await self._run_manim(
-                code_path=block_path,
-                scene_name=scene_name,
-                quality=quality,
-                width=width,
-                height=height,
-                fps=fps,
-                save_last_frame=True,
-            )
-            image_file = self._find_rendered_file(".png")
-            artifact_path = self.artifacts_dir / f"image-{idx:02d}.png"
-            artifact_path.write_bytes(image_file.read_bytes())
-            await self._emit_progress(f"Saved image artifact {artifact_path.name}.")
-            artifacts.append(
-                self._build_artifact(
-                    artifact_path,
-                    "image",
-                    "image/png",
-                    f"Image {idx}",
-                )
-            )
-        return artifacts
+        # The disabled image entry must not parse or persist model-generated
+        # code even if a caller bypasses the public render method.
+        require_math_animator_ready()
+        raise ManimRenderError("Isolated image renderer is unavailable.")
 
     async def _run_manim(
         self,
