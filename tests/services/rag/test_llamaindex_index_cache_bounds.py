@@ -7,6 +7,7 @@ from cognivoy.services.rag.pipelines.llamaindex import storage
 
 @pytest.fixture(autouse=True)
 def _clear_cache():
+    pytest.importorskip("llama_index.core", reason="Legacy vector index cache coverage")
     storage.clear_index_cache()
     yield
     storage.clear_index_cache()

@@ -16,6 +16,7 @@ def vector_retrieval(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_custom_embedding_rejects_null_coordinates(monkeypatch: pytest.MonkeyPatch) -> None:
+    pytest.importorskip("llama_index.core", reason="Legacy vector adapter coverage")
     from cognivoy.services.rag.pipelines.llamaindex import (
         embedding_adapter as embedding_module,
     )
@@ -36,6 +37,7 @@ def test_custom_embedding_rejects_null_coordinates(monkeypatch: pytest.MonkeyPat
 
 
 def test_custom_embedding_refreshes_stale_client(monkeypatch: pytest.MonkeyPatch) -> None:
+    pytest.importorskip("llama_index.core", reason="Legacy vector adapter coverage")
     from cognivoy.services.rag.pipelines.llamaindex import (
         embedding_adapter as embedding_module,
     )
@@ -195,6 +197,7 @@ async def test_search_uses_killable_storage_worker(
 def test_retrieve_nodes_rejects_invalid_persisted_embeddings(
     tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    pytest.importorskip("llama_index.core", reason="Legacy vector retrieval coverage")
     from cognivoy.services.rag.pipelines.llamaindex import storage as storage_module
 
     class _RetrieverShouldNotRun:
@@ -229,6 +232,7 @@ def test_validate_storage_embeddings_rejects_invalid_vector_file(tmp_path) -> No
 def test_retrieve_nodes_checks_storage_context_vector_stores(
     tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    pytest.importorskip("llama_index.core", reason="Legacy vector retrieval coverage")
     from cognivoy.services.rag.pipelines.llamaindex import storage as storage_module
 
     class _RetrieverShouldNotRun:

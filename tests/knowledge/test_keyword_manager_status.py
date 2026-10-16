@@ -6,13 +6,13 @@ import importlib
 import json
 from types import SimpleNamespace
 
-from llama_index.core import Document
 import pytest
 
 from cognivoy.knowledge import manager as manager_module
 from cognivoy.knowledge.manager import KnowledgeBaseManager
 from cognivoy.services.rag import embedding_signature
 from cognivoy.services.rag.pipelines.llamaindex import keyword
+from cognivoy.services.rag.pipelines.llamaindex.document_loader import TextDocument as Document
 
 
 @pytest.fixture(autouse=True)
@@ -29,7 +29,7 @@ def no_embedding(monkeypatch):
 
 def make_manager(tmp_path, **fields):
     kb = tmp_path / "course"
-    keyword.index_documents([Document(text="CISA auditing evidence")], str(kb))
+    keyword.index_documents([Document(text="CISA auditing evidence", metadata={})], str(kb))
     (tmp_path / "kb_config.json").write_text(
         json.dumps(
             {

@@ -11,11 +11,15 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+import pytest
+
+# Gate before importing any legacy vector implementation or upstream types.
+pytest.importorskip("llama_index.core", reason="Local vector integration is disabled")
+
 from llama_index.core import Settings, VectorStoreIndex
 from llama_index.core.embeddings import BaseEmbedding
 from llama_index.core.schema import ImageNode, TextNode
 import numpy as np
-import pytest
 
 from cognivoy.services.rag.pipelines.llamaindex import storage as storage_module
 from cognivoy.services.rag.pipelines.llamaindex import vector_store

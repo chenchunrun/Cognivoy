@@ -24,6 +24,7 @@ async def test_incremental_add_migrates_matching_legacy_index_to_flat_version(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    pytest.importorskip("llama_index.core", reason="Legacy vector index migration coverage")
     from cognivoy.services.rag.pipelines.llamaindex import pipeline as pipeline_module
     from cognivoy.services.rag.pipelines.llamaindex import storage as storage_module
     from cognivoy.services.rag.pipelines.llamaindex.pipeline import LlamaIndexPipeline
@@ -102,6 +103,7 @@ async def test_incremental_add_migrates_matching_legacy_index_to_flat_version(
 def test_hybrid_retriever_uses_official_query_fusion_when_bm25_available(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    pytest.importorskip("llama_index.core", reason="Legacy vector retriever coverage")
     from cognivoy.services.rag.pipelines.llamaindex import retrievers as retriever_module
     from cognivoy.services.rag.pipelines.llamaindex.config import RetrievalConfig
 
@@ -147,6 +149,7 @@ def test_hybrid_retriever_uses_official_query_fusion_when_bm25_available(
 def test_hybrid_retriever_falls_back_to_vector_when_bm25_missing(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    pytest.importorskip("llama_index.core", reason="Legacy vector retriever coverage")
     from cognivoy.services.rag.pipelines.llamaindex import retrievers as retriever_module
     from cognivoy.services.rag.pipelines.llamaindex.config import RetrievalConfig
 
@@ -173,6 +176,7 @@ def test_hybrid_retriever_falls_back_to_vector_when_bm25_missing(
 def test_bm25_retriever_overrides_persisted_top_k(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    pytest.importorskip("llama_index.core", reason="Legacy vector retriever coverage")
     from cognivoy.services.rag.pipelines.llamaindex import retrievers as retriever_module
 
     persist_dir = tmp_path / retriever_module.BM25_PERSIST_DIRNAME
@@ -197,6 +201,7 @@ def test_bm25_retriever_overrides_persisted_top_k(
 def test_bm25_persistence_drops_stale_sidecar_on_rebuild_failure(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    pytest.importorskip("llama_index.core", reason="Legacy vector retriever coverage")
     from cognivoy.services.rag.pipelines.llamaindex import retrievers as retriever_module
 
     persist_dir = tmp_path / retriever_module.BM25_PERSIST_DIRNAME

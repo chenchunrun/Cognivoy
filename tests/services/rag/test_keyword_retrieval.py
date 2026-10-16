@@ -1,10 +1,31 @@
+import json
 import os
 from pathlib import Path
 
-from llama_index.core import Document
 import pytest
 
 from cognivoy.services.rag.pipelines.llamaindex import keyword
+from cognivoy.services.rag.pipelines.llamaindex.document_loader import TextDocument as Document
+
+
+def _write_legacy_docstore(path, text, metadata=None):
+    """Write the historical wire format without importing its retired producer."""
+    path.write_text(
+        json.dumps(
+            {
+                "docstore/data": {
+                    "legacy-node": {
+                        "__type__": "1",
+                        "__data__": {
+                            "id_": "legacy-node",
+                            "text": text,
+                            "metadata": metadata or {},
+                        },
+                    }
+                }
+            }
+        )
+    )
 
 
 def test_keyword_ranking_and_cjk_without_models(tmp_path):
@@ -37,37 +58,41 @@ def test_keyword_append_and_rebuild_preserve_vectors(tmp_path):
     )
     assert len(keyword.load_rows(tmp_path)) == 1
     assert keyword.retrieve(str(tmp_path), "initial") == []
-    keyword.index_documents([Document(text="another guide")], str(tmp_path))
+    keyword.index_documents([Document(text="another guide", metadata={})], str(tmp_path))
     assert vector_file.read_bytes() == b"original"
     assert keyword.retrieve(str(tmp_path), "auditing") == []
 
 
 def test_keyword_failed_publish_preserves_previous_index(tmp_path, monkeypatch):
-    keyword.index_documents([Document(text="CISA original")], str(tmp_path))
+    keyword.index_documents([Document(text="CISA original", metadata={})], str(tmp_path))
     monkeypatch.setattr(
         keyword.os, "replace", lambda *_: (_ for _ in ()).throw(OSError("disk full"))
     )
     with pytest.raises(OSError):
-        keyword.index_documents([Document(text="replacement")], str(tmp_path))
+        keyword.index_documents([Document(text="replacement", metadata={})], str(tmp_path))
     assert keyword.retrieve(str(tmp_path), "original")
     assert len(list((tmp_path / keyword.INDEX_DIR).iterdir())) == 1
 
 
 def test_keyword_oversized_publish_preserves_previous_index(tmp_path, monkeypatch):
-    keyword.index_documents([Document(text="CISA original")], str(tmp_path))
+    keyword.index_documents([Document(text="CISA original", metadata={})], str(tmp_path))
     index = tmp_path / keyword.INDEX_DIR / keyword.INDEX_FILE
     original = index.read_bytes()
     monkeypatch.setattr(keyword, "MAX_INDEX_BYTES", len(original) + 10)
     with pytest.raises(ValueError, match="size"):
-        keyword.index_documents([Document(text="oversized replacement " * 100)], str(tmp_path))
+        keyword.index_documents(
+            [Document(text="oversized replacement " * 100, metadata={})], str(tmp_path)
+        )
     assert index.read_bytes() == original
     assert keyword.retrieve(str(tmp_path), "original")
 
 
 def test_keyword_append_replaces_document_id_without_file_metadata(tmp_path):
-    keyword.index_documents([Document(text="old content", id_="stable")], str(tmp_path))
     keyword.index_documents(
-        [Document(text="new content", id_="stable")], str(tmp_path), append=True
+        [Document(text="old content", doc_id="stable", metadata={})], str(tmp_path)
+    )
+    keyword.index_documents(
+        [Document(text="new content", doc_id="stable", metadata={})], str(tmp_path), append=True
     )
     assert len(keyword.load_rows(tmp_path)) == 1
     assert not keyword.retrieve(str(tmp_path), "old")
@@ -101,16 +126,11 @@ def test_keyword_append_upgrades_legacy_filename_without_merging_known_paths(tmp
 
 
 def test_keyword_reads_legacy_text_without_opening_vectors(tmp_path):
-    from llama_index.core.schema import TextNode
-    from llama_index.core.storage.docstore import SimpleDocumentStore
-
     legacy = tmp_path / "llamaindex_storage"
     legacy.mkdir()
-    store = SimpleDocumentStore()
-    store.add_documents(
-        [TextNode(text="CISA audit evidence", metadata={"file_name": "cisa.pdf", "page": 3})]
+    _write_legacy_docstore(
+        legacy / "docstore.json", "CISA audit evidence", {"file_name": "cisa.pdf", "page": 3}
     )
-    store.persist(str(legacy / "docstore.json"))
     # Existing version readiness requires an index marker, not valid vectors.
     (legacy / "index_store.json").write_text("{}")
     assert keyword.available(tmp_path)
@@ -119,14 +139,9 @@ def test_keyword_reads_legacy_text_without_opening_vectors(tmp_path):
 
 
 def test_keyword_reads_nested_legacy_without_embedding_signature(tmp_path):
-    from llama_index.core.schema import TextNode
-    from llama_index.core.storage.docstore import SimpleDocumentStore
-
     legacy = tmp_path / "index_versions" / "old-model" / "llamaindex_storage"
     legacy.mkdir(parents=True)
-    store = SimpleDocumentStore()
-    store.add_documents([TextNode(text="CISA legacy auditing")])
-    store.persist(str(legacy / "docstore.json"))
+    _write_legacy_docstore(legacy / "docstore.json", "CISA legacy auditing")
     assert keyword.available(tmp_path)
     assert keyword.retrieve(str(tmp_path), "auditing")
 
@@ -170,7 +185,7 @@ def test_keyword_rejects_out_of_scope_index(tmp_path):
     outside.mkdir()
     (root / keyword.INDEX_DIR).symlink_to(outside, target_is_directory=True)
     with pytest.raises(ValueError, match="inside"):
-        keyword.index_documents([Document(text="secret")], str(root))
+        keyword.index_documents([Document(text="secret", metadata={})], str(root))
     assert list(outside.iterdir()) == []
 
 
@@ -187,7 +202,7 @@ def test_keyword_readiness_caches_only_boolean_and_rechecks_changes(tmp_path, mo
     assert not keyword.available(tmp_path)
     assert not keyword.available(tmp_path)
     assert len(calls) == 1
-    keyword.index_documents([Document(text="CISA auditing")], str(tmp_path))
+    keyword.index_documents([Document(text="CISA auditing", metadata={})], str(tmp_path))
     assert keyword.available(tmp_path)
     assert keyword.available(tmp_path)
     assert len(calls) == 2
@@ -201,7 +216,7 @@ def test_keyword_readiness_caches_only_boolean_and_rechecks_changes(tmp_path, mo
 
 
 def test_keyword_readiness_invalidates_same_size_atomic_replacement(tmp_path):
-    keyword.index_documents([Document(text="CISA")], str(tmp_path))
+    keyword.index_documents([Document(text="CISA", metadata={})], str(tmp_path))
     assert keyword.available(tmp_path)
     index = tmp_path / keyword.INDEX_DIR / keyword.INDEX_FILE
     before = index.stat()
@@ -216,18 +231,13 @@ def test_keyword_readiness_invalidates_same_size_atomic_replacement(tmp_path):
 def test_keyword_readiness_cache_cannot_hide_new_out_of_scope_symlink(tmp_path, layout):
     root = tmp_path / "kb"
     if layout == "keyword":
-        keyword.index_documents([Document(text="CISA auditing")], str(root))
+        keyword.index_documents([Document(text="CISA auditing", metadata={})], str(root))
         index = root / keyword.INDEX_DIR / keyword.INDEX_FILE
     else:
-        from llama_index.core.schema import TextNode
-        from llama_index.core.storage.docstore import SimpleDocumentStore
-
         folder = root / "llamaindex_storage"
         folder.mkdir(parents=True)
-        store = SimpleDocumentStore()
-        store.add_documents([TextNode(text="CISA auditing")])
         index = folder / "docstore.json"
-        store.persist(str(index))
+        _write_legacy_docstore(index, "CISA auditing")
     assert keyword.available(root)
     outside = tmp_path / "outside.json"
     index.replace(outside)
@@ -236,19 +246,14 @@ def test_keyword_readiness_cache_cannot_hide_new_out_of_scope_symlink(tmp_path, 
 
 
 def test_keyword_readiness_rechecks_legacy_docstore_and_new_sidecar(tmp_path):
-    from llama_index.core.schema import TextNode
-    from llama_index.core.storage.docstore import SimpleDocumentStore
-
     folder = tmp_path / "llamaindex_storage"
     folder.mkdir()
-    store = SimpleDocumentStore()
-    store.add_documents([TextNode(text="CISA auditing")])
     index = folder / "docstore.json"
-    store.persist(str(index))
+    _write_legacy_docstore(index, "CISA auditing")
     assert keyword.available(tmp_path)
     index.write_text("{}")
     assert not keyword.available(tmp_path)
-    keyword.index_documents([Document(text="CISA restored")], str(tmp_path))
+    keyword.index_documents([Document(text="CISA restored", metadata={})], str(tmp_path))
     assert keyword.available(tmp_path)
 
 
