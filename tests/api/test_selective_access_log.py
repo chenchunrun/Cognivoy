@@ -12,6 +12,7 @@ capture by attaching a handler directly to that logger rather than via caplog.
 
 from __future__ import annotations
 
+from io import StringIO
 import logging
 
 import pytest
@@ -20,30 +21,17 @@ pytest.importorskip("fastapi")
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 ACCESS_LOGGER = "cognivoy.access"
 
 
 def _build_app_with_middleware():
-    """Build a minimal app that replicates the selective_access_log middleware."""
-    test_app = FastAPI()
-    _access_logger = logging.getLogger(ACCESS_LOGGER)
+    """Exercise the production middleware without starting application services."""
+    from cognivoy.api.main import selective_access_log
 
-    @test_app.middleware("http")
-    async def selective_access_log(request: Request, call_next):
-        response = await call_next(request)
-        if response.status_code != 200:
-            _access_logger.info(
-                '%s - "%s %s HTTP/%s" %d',
-                request.client.host if request.client else "-",
-                request.method,
-                request.url.path,
-                request.scope.get("http_version", "1.1"),
-                response.status_code,
-            )
-        return response
+    test_app = FastAPI()
+    test_app.middleware("http")(selective_access_log)
 
     @test_app.get("/ok")
     def ok():
@@ -83,6 +71,25 @@ class _CaptureAccess:
 
 class TestSelectiveAccessLog:
     """selective_access_log middleware must emit 5-arg tuples for the formatter."""
+
+    @pytest.mark.parametrize("encoded", ["%0A", "%0D", "%1B%5B2J", "%E2%80%A8"])
+    def test_non_200_encoded_path_cannot_forge_log_records(self, monkeypatch, encoded):
+        app = _build_app_with_middleware()
+        handler = next(
+            handler
+            for handler in logging.getLogger(ACCESS_LOGGER).handlers
+            if getattr(handler, "_cognivoy_access_handler", False)
+        )
+        output = StringIO()
+        monkeypatch.setattr(handler, "stream", output)
+        with TestClient(app) as client:
+            response = client.get(f"/missing{encoded}ERROR-forged")
+        assert response.status_code == 404
+        log = output.getvalue()
+        assert len(log.splitlines()) == 1
+        assert "\x1b" not in log
+        assert "ERROR-forged" in log
+        assert "404" in log
 
     def test_non_200_log_has_five_args(self):
         """Non-200 response log record args must have 5 elements (#334)."""
