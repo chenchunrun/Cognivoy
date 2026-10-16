@@ -677,7 +677,7 @@ async function flowKnowledge(page) {
   await page.locator('[data-testid="advanced-engine-overview"] summary').click();
   const engineRegion = page.getByRole("region", { name: "Retrieval engines" });
   await engineRegion.waitFor({ timeout: 10000 });
-  const engineNames = ["LlamaIndex", "PageIndex", "GraphRAG", "LightRAG", "LightRAG Server", "Tencent IMA"];
+  const engineNames = ["LlamaIndex", "PageIndex", "LightRAG", "LightRAG Server", "Tencent IMA"];
   for (const name of engineNames) {
     assert(
       await engineRegion.getByRole("heading", { name, exact: true }).isVisible(),
@@ -685,8 +685,13 @@ async function flowKnowledge(page) {
     );
   }
   assert(
-    await engineRegion.getByText(/of 6 ready/).isVisible(),
+    await engineRegion.getByText(/of 5 ready/).isVisible(),
     "knowledge engine readiness summary missing",
+  );
+
+  assert(
+    await engineRegion.getByRole("heading", { name: "GraphRAG", exact: true }).count() === 0,
+    "disabled GraphRAG must not be offered in the engine overview",
   );
 
   // Keep the deterministic release gate independent from an optional local
