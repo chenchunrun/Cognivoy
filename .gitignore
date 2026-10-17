@@ -337,3 +337,9 @@ celerybeat.pid
 !demo/*.mp4
 
 # Legacy frontend build output (dir swap 2026-08)
+
+# Review working papers belong in the separate private repository.
+/CODEQL_LOGGING_REVIEW.md
+/PATH_INJECTION_REVIEW.md
+/SECURITY_RELEASE_REVIEW.md
+/SECURITY_FRONTEND_REVIEW.md
