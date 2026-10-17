@@ -6,6 +6,16 @@ and releases use semantic versioning where practical.
 
 ## [Unreleased]
 
+## [1.5.12] - 2026-10-17
+
+### Fixed
+
+- Include asset provenance in the Docker build context so production images
+  can copy all required license and attribution files.
+- Run required CI tests when Dockerfiles or Docker ignore rules change.
+
+## [1.5.11] - 2026-10-16
+
 ### Added
 
 - Model-free BM25 knowledge retrieval, with English/Chinese tokenization, text
