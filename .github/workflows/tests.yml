@@ -7,6 +7,7 @@ on:
       - main
       - dev
     paths:
+      - "uv.lock"
       - ".dockerignore"
       - "Dockerfile"
       - "Dockerfile.*"
@@ -39,6 +40,7 @@ on:
       - main
       - dev
     paths:
+      - "uv.lock"
       - ".dockerignore"
       - "Dockerfile"
       - "Dockerfile.*"
