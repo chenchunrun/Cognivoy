@@ -6,6 +6,14 @@ and releases use semantic versioning where practical.
 
 ## [Unreleased]
 
+## [1.5.13] - 2026-10-20
+
+### Security
+
+- Require aiohttp 3.14.4 or newer to address GHSA-2g87-pp6c-29x5.
+- Update the locked aiohttp and yarl dependencies and align all installation
+  entry points with the patched aiohttp minimum.
+
 ## [1.5.12] - 2026-10-17
 
 ### Fixed
