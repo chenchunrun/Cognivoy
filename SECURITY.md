@@ -62,10 +62,23 @@ retrieval remains available and existing knowledge-base data is preserved.
 See [local engine availability](OPTIONAL_CAPABILITIES.md#local-engine-availability). Recreate
 existing environments to remove previously installed optional packages.
 
-The web production audit reports no findings, while development tooling retains
-the unpatched Braces advisory described in [the frontend review](SECURITY_FRONTEND_REVIEW.md).
-Only trusted repository glob configuration may be used for builds; keep build
-workers isolated and do not expose these glob parsers to application input.
+### Known frontend development dependency risk
+
+As reviewed on 2026-10-16, development tooling retains
+[GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm):
+stack-exhaustion denial of service in `braces <=3.0.3` when parsing deeply
+nested patterns. No patched version was listed at that review. The full npm
+audit reports seven high-severity package/chain entries rooted in this single
+advisory, through Tailwind/ESLint glob-processing dependencies. The production-only
+audit reports no findings; this does not mean that every installation or build
+environment is free of vulnerable packages.
+
+Use only trusted repository glob configuration, isolate build workers, and never
+pass user-supplied patterns into build tools. Exclude development dependencies
+from production deployments where the packaging workflow permits. These controls
+reduce exposure but do not fix the library. Removing the advisory requires a
+reviewed build-toolchain migration; no advisory exemption or vendored scanner-only
+patch is used. Reassess the advisory and installed dependency set before deploying.
 
 ### Starlette: patched dependency required
 
