@@ -7,6 +7,10 @@ on:
       - main
       - dev
     paths:
+      - "uv.lock"
+      - ".dockerignore"
+      - "Dockerfile"
+      - "Dockerfile.*"
       - "cognivoy/**"
       - "cognivoy_cli/**"
       - "tests/**"
@@ -36,6 +40,10 @@ on:
       - main
       - dev
     paths:
+      - "uv.lock"
+      - ".dockerignore"
+      - "Dockerfile"
+      - "Dockerfile.*"
       - "cognivoy/**"
       - "cognivoy_cli/**"
       - "tests/**"
