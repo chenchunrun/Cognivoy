@@ -12,7 +12,7 @@
 pytest>=7.0.0
 pytest-asyncio>=0.23.0
 pre-commit>=3.0.0
-safety<3.0.0
+safety<4.0.0
 bandit>=1.8.0
 
 # --- Test fixture builders for document-loader tests ---
