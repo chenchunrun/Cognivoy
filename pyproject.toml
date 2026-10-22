@@ -153,7 +153,7 @@ server = [
 # IM platform SDKs and the MCP client used for deferred tools.
 partners = [
     "cognivoy[server]",
-    "mcp>=1.30.0,<2.0.0",
+    "mcp>=1.30.0,<3.0.0",
     "python-telegram-bot[socks]>=22.6,<23.0",
     "wecom-aibot-sdk>=1.0.8,<2.0.0",
     "lark-oapi>=1.5.0,<2.0.0",
