@@ -190,7 +190,7 @@ parse-docling = []
 # pre-1.0 line on purpose: 1.x defaults to an onnxruntime layout-AI path that
 # pulls a heavy dep, downloads a model, and can't extract images — defeating the
 # "lightweight, runs on a Pi, extracts images" point of this engine.
-parse-pymupdf4llm = ["pymupdf4llm>=0.0.17,<1.0"]
+parse-pymupdf4llm = ["pymupdf4llm>=0.0.17,<3.0"]
 parse = [
     "cognivoy[parse-markitdown]",
     "cognivoy[parse-pymupdf4llm]",
