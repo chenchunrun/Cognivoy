@@ -17,7 +17,7 @@
 # any heavy framework — keeping the attack surface and image size minimal.
 # ============================================
 
-FROM python:3.11-slim
+FROM python:3.15-slim
 
 # Preserve the upstream license, attribution, and bundled third-party notices
 # in this independently distributed sidecar image.
