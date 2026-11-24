@@ -78,7 +78,7 @@
     "exceljs": "^4.4.0",
     "framer-motion": "^12.24.0",
     "html2canvas": "^1.4.1",
-    "i18next": "^25.8.0",
+    "i18next": "^27.2.7",
     "jspdf": "^4.2.0",
     "katex": "0.18.2",
     "lucide-react": "^0.562.0",
