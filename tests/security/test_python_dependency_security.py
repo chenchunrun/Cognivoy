@@ -16,6 +16,7 @@ FLOORS = {
     "urllib3": "2.8.0",
     "soupsieve": "4.0.0",
     "setuptools": "84.1.0",
+    "virtualenv": "21.14.13",
 }
 PREVIOUS = {
     "pyjwt": "2.13.0",
@@ -24,6 +25,7 @@ PREVIOUS = {
     "urllib3": "2.7.0",
     "soupsieve": "3.0.2",
     "setuptools": "84.0.0",
+    "virtualenv": "21.14.9",
 }
 
 
