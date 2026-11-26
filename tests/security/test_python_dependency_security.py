@@ -11,17 +11,21 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 FLOORS = {
     "pyjwt": "2.15.1",
-    "pypdf": "6.21.1",
+    "pypdf": "6.21.4",
     "multidict": "6.9.1",
     "urllib3": "2.8.0",
-    "virtualenv": "21.14.9",
+    "soupsieve": "4.0.0",
+    "setuptools": "84.1.0",
+    "virtualenv": "21.14.13",
 }
 PREVIOUS = {
     "pyjwt": "2.13.0",
-    "pypdf": "6.20.1",
+    "pypdf": "6.21.2",
     "multidict": "6.7.1",
     "urllib3": "2.7.0",
-    "virtualenv": "21.14.8",
+    "soupsieve": "3.0.2",
+    "setuptools": "84.0.0",
+    "virtualenv": "21.14.9",
 }
 
 
