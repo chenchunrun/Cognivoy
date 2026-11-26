@@ -2,7 +2,7 @@
 # This file configures Black, Ruff, and other Python tools
 
 [build-system]
-requires = ["setuptools>=77.0.3", "wheel"]
+requires = ["setuptools>=84.1.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -29,7 +29,7 @@ classifiers = [
 # Active heavy RAG extras (rag-lightrag) carry a `python_version < '3.14'`
 # marker for the same reason; capping here makes pip refuse 3.14 with a
 # readable "Requires a different Python" message instead of a build failure.
-requires-python = ">=3.11,<3.14"
+requires-python = ">=3.11.5,<3.14"
 readme = "README.md"
 license = "Apache-2.0"
 license-files = [
@@ -40,6 +40,8 @@ license-files = [
     "ASSET_PROVENANCE.md",
 ]
 dependencies = [
+    "soupsieve>=4.0.0",
+    "setuptools>=84.1.0",
     "filelock>=4.2.1",
     # Core runtime
     "PyYAML>=6.0",
@@ -73,7 +75,7 @@ dependencies = [
     "python-docx>=1.1.0",
     "openpyxl>=3.1.0",
     "python-pptx>=1.0.0",
-    "pypdf>=6.20.1",
+    "pypdf>=6.21.4",
     "multidict>=6.9.1,<7.0.0",
     "urllib3>=2.8.0,<3.0.0",
     "reportlab>=4.0.0",
@@ -124,7 +126,7 @@ cli = [
     "python-docx>=1.1.0",
     "openpyxl>=3.1.0",
     "python-pptx>=1.0.0",
-    "pypdf>=6.20.1",
+    "pypdf>=6.21.4",
     "multidict>=6.9.1,<7.0.0",
     "urllib3>=2.8.0,<3.0.0",
     "reportlab>=4.0.0",
@@ -243,7 +245,7 @@ dev = [
     "python-docx>=1.1.0",
     "openpyxl>=3.1.0",
     "python-pptx>=1.0.0",
-    "pypdf>=6.20.1",
+    "pypdf>=6.21.4",
     "defusedxml>=0.7.1",
 ]
 
